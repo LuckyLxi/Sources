@@ -5,19 +5,19 @@
       "id": "jm",
       "name": "JMComic",
       "version": "1.0.1",
-      "downloadUrl": "https://raw.githubusercontent.com/LuckyLxi/Sources/main/jm.js"
+      "downloadUrl": "https://cdn.jsdelivr.net/gh/LuckyLxi/Sources@main/jm.js"
     },
     {
       "id": "copy_manga",
       "name": "CopyManga",
       "version": "1.0.1",
-      "downloadUrl": "https://raw.githubusercontent.com/LuckyLxi/Sources/main/copy_manga.js"
+      "downloadUrl": "https://cdn.jsdelivr.net/gh/LuckyLxi/Sources@main/copy_manga.js"
     },
     {
       "id": "picacg",
       "name": "Picacg",
       "version": "1.0.1",
-      "downloadUrl": "https://raw.githubusercontent.com/LuckyLxi/Sources/main/picacg.js"
+      "downloadUrl": "https://cdn.jsdelivr.net/gh/LuckyLxi/Sources@main/picacg.js"
     }
   ]
 }
