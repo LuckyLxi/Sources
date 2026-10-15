@@ -1,6 +1,7 @@
-dev/
 node_modules/
 build/
 coverage/
 .env*
 .DS_Store
+scratch/
+AGENTS.md

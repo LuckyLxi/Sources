@@ -1,0 +1,58 @@
+name: Update plugin index
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "*.js"
+      - "plugins.json"
+      - "dev/scripts/update-plugin-index.cjs"
+      - "dev/test/plugin_index.test.cjs"
+      - "dev/package.json"
+      - "dev/package-lock.json"
+      - ".github/workflows/update-plugin-index.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: plugin-index-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  update:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout latest main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: dev/package-lock.json
+      - name: Install dependencies
+        run: npm --prefix dev ci --ignore-scripts --no-audit --no-fund
+      - name: Test index generator
+        run: node --test dev/test/plugin_index.test.cjs
+      - name: Generate index
+        run: npm --prefix dev run index:update
+      - name: Commit index
+        shell: bash
+        run: |
+          git add -- plugins.json
+          if git diff --cached --quiet -- plugins.json; then
+            echo "Plugin index is unchanged."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "chore: update plugin index"
+          git push origin HEAD:main

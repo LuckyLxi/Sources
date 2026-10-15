@@ -1,0 +1,15 @@
+{
+  "name": "hazuki-source-plugins",
+  "private": true,
+  "scripts": {
+    "test": "node --test test/*.test.cjs",
+    "check": "tsc -p tsconfig.json && node --check scripts/update-plugin-index.cjs && node --check test/plugin_index.test.cjs",
+    "format:check": "prettier --check ../picacg.js ../copy_manga.js ../relamanhua.js scripts/*.cjs test/plugin_index.test.cjs ../.github/workflows/update-plugin-index.yml",
+    "index:update": "node scripts/update-plugin-index.cjs",
+    "index:check": "node scripts/update-plugin-index.cjs --check"
+  },
+  "devDependencies": {
+    "prettier": "3.9.10",
+    "typescript": "5.9.3"
+  }
+}
