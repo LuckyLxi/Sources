@@ -10,6 +10,7 @@ The upstream repository did not contain a root license file at this commit. No a
 
 const jmFallbackDomains = ['www.cdntwice.org', 'www.cdnsha.org', 'www.cdnaspa.cc', 'www.cdnntr.cc'];
 const jmDefaultImageHost = 'https://cdn-msp.jmapinodeudzn.net';
+const jmComicIdPattern = '^(?:jm)?(\\d{2,})$';
 const jmUserAgent =
   'Mozilla/5.0 (Linux; Android 10; K; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/130.0.0.0 Mobile Safari/537.36';
 let jmApiDomains = jmFallbackDomains.slice();
@@ -213,6 +214,11 @@ function jmComicPage(items, total, pageSize) {
   };
 }
 
+/** @param {string} value */
+function jmMatchComicId(value) {
+  return new RegExp(jmComicIdPattern, 'i').exec(value.trim())?.[1] ?? null;
+}
+
 function jmToday() {
   // Keep the existing storage format so upgrades preserve today's check-in.
   const date = new Date();
@@ -263,7 +269,7 @@ function jmProfile(profile, uid, fallbackName = '') {
 const source = {
   id: 'jm',
   name: 'JMComic',
-  version: '1.0.1',
+  version: '1.0.3',
   apiVersion: 1,
 
   async init() {
@@ -492,6 +498,23 @@ const source = {
 
   search: {
     async load(keyword, options, page) {
+      const id = jmMatchComicId(keyword);
+      if (id) {
+        try {
+          // ID lookup uses the album API; it does not depend on keyword results.
+          const album = await jmGet(`/album?${jmForm({ id })}`);
+          if (typeof album?.name !== 'string' || !album.name.trim()) {
+            throw new Error('invalid_jm_album');
+          }
+          return {
+            comics: page === 1 ? [jmParseComic({ ...album, id })] : [],
+            maxPage: 1,
+          };
+        } catch (error) {
+          // Keep the host's ordinary keyword fallback when an ID is unavailable.
+          Hazuki.log(String(error), 'warn');
+        }
+      }
       const query = jmForm({ search_query: keyword.trim(), o: options[0] || 'mr' }).replace(
         /%20/g,
         '+',
@@ -536,7 +559,7 @@ const source = {
 
   comic: {
     async loadInfo(comicId) {
-      const id = comicId.replace(/^jm/i, '');
+      const id = jmMatchComicId(comicId) ?? comicId.trim().replace(/^jm/i, '');
       const data = await jmGet(`/album?${jmForm({ id })}`);
       /** @type {Record<string, string>} */
       const chapters = {};
@@ -736,7 +759,8 @@ const source = {
       { id: 'copyComicId', location: 'comicDetailInfo' },
       { id: 'relatedComics', location: 'comicDetailTabs' },
     ],
-    directComicId: true,
+    directComicIdRules: { patterns: [jmComicIdPattern], extractDigits: true },
+    dailyRecommendation: { searchOrder: 'mr' },
     showComicId: true,
     listTagGroups: ['Tag'],
     favoriteOrderAliases: { '-datetime_updated': 'mp' },
