@@ -3,13 +3,48 @@ type Awaitable<T> = T | Promise<T>;
 /** Current language, then English, then the first nonempty provided value. */
 type SourceText = string | Record<string, string>;
 interface SourceComic {
+  /** subTitle is for non-author information only; authors belong in infoFields. */
   id: string; title: string; cover: string; subTitle?: string; tags?: string[];
 }
+/** A website recommendation/banner. All items open their source's comic detail.
+ * imageUrl is optional promotional art, separate from the original comic cover.
+ */
+interface SourceDailyRecommendationItem extends Omit<SourceComic, 'cover'> {
+  cover?: string;
+  imageUrl?: string;
+  /** Optional short overlay text: author, recommendation reason, section name, etc. */
+  caption?: string;
+}
 interface ComicPage { comics: SourceComic[]; maxPage?: number | null; }
+/** Rows render in declaration order; empty values hide the row. */
+interface SourceComicInfoField {
+  label: SourceText;
+  /** A single value or explicit values. Punctuation is preserved. */
+  values: string | string[];
+  /** Default: none. All values support the existing long-press copy gesture. */
+  action?: 'none' | 'search' | 'copy';
+}
+/** Compact header item above the read button. Short text only: never descriptions,
+ * author lists, announcements or other large text. Put long content in infoFields
+ * or description. The host renders one line with ellipsis when needed.
+ */
+interface SourceComicHeaderStat {
+  text: SourceText;
+  /** Mobile inline like action; requires comic.likeComic. Otherwise text only. */
+  action?: 'none' | 'like';
+}
 interface SourceComicDetails {
+  /** The detail header does not display subTitle; never put authors here. */
   id?: string; title: string; cover?: string; subTitle?: string;
-  description?: string; updateTime?: string; likesCount?: number | string;
+  description?: string; updateTime?: string; likesCount?: number | string; viewsCount?: number | string;
   chapters: Record<string, string> | Map<string, string>;
+  /** Arbitrary detail rows; the host does not infer rows from tags or uploader. */
+  infoFields?: SourceComicInfoField[];
+  /** Declaration order is preserved. Omitted/empty hides the statistics content.
+   * Do not put large amounts of text here; use infoFields or description.
+   */
+  headerStats?: SourceComicHeaderStat[];
+  /** Structured data for listTagGroups and existing header status, not detail rows. */
   tags?: Record<string, string[]>; recommend?: SourceComic[];
   isFavorite?: boolean; isLiked?: boolean; uploader?: string; pageCount?: number | string; subId?: string;
 }
@@ -100,19 +135,21 @@ interface SourcePresentation {
   favoriteOrderLabels?: Record<string, SourceText>;
   favoriteOrders?: string[]; favoriteDefaultOrder?: string; favoriteOrderSetting?: string;
   requiresLogin?: boolean; dailyCheckIn?: boolean; skipPeriodicRelogin?: boolean;
+  /** Explicit opt-in for both the detail comments tab and reader comments entry.
+   * Omitted/false hides both, regardless of whether loadComments is implemented.
+   */
+  showComments?: boolean;
   commentReplies?: boolean;
   /** @deprecated Host no longer enables ID lookup or recommendations from this flag. */
   directComicId?: boolean;
   /** Case-insensitive full keyword match; use the first nonempty capture as the ID. */
   directComicIdRules?: {patterns: string[]; extractDigits: boolean};
   /** Independent opt-in; searchOrder must name a supported search ordering. */
-  dailyRecommendation?: {searchOrder: string};
-  showComicId?: boolean; showUploader?: boolean;
-  /** Independent detail rows. Explicit false overrides legacy uploader defaults. */
-  showCategories?: boolean; showChineseTeam?: boolean;
-  /** Detail tag row groups, independent of listTagGroups. Empty hides the row. */
-  detailTagGroups?: string[];
-  showPageCount?: boolean; showTags?: boolean; showComicStatus?: boolean;
+  dailyRecommendation?:
+    | {mode?: 'authors'; searchOrder: string}
+    | {mode: 'plugin'};
+  showComicId?: boolean;
+  showTags?: boolean; showComicStatus?: boolean;
   legacyRanking?: boolean; recreateOnStatus?: number[];
   refreshCloudFavorites?: boolean;
   imageQualitySetting?: string; imageQualityDefault?: string;
@@ -134,7 +171,7 @@ interface HazukiSourceDefinition {
     loadEp(comicId: string, chapterId: string): Awaitable<{images: string[]}>;
     onImageLoad?: (url: string, comicId: string, chapterId: string) => Awaitable<ImageLoadConfig>;
     transformImageBytes?: (bytes: Uint8Array, url: string, comicId: string, chapterId: string) => Awaitable<{bytes: Uint8Array; extension?: string}>;
-    /** Providing this function automatically shows the fixed comic-detail like button. */
+    /** Provides the desktop like button and enables mobile headerStats like actions. */
     likeComic?: (id: string, isLike: boolean) => Awaitable<void>;
     loadComments?: (id: string, subId: string | null, page: number, replyTo: string | null) => Awaitable<{comments: SourceComment[]; maxPage?: number}>;
     loadChapterComments?: (id: string, chapterId: string, page: number, replyTo: string | null) => Awaitable<{comments: SourceComment[]; maxPage?: number}>;
@@ -161,14 +198,26 @@ interface HazukiSourceDefinition {
     ranking?: {options: string[]; load(option: string, page: number): Awaitable<ComicPage>};
   };
   favorites?: {
+    /** Whether each comic can belong to at most one folder, not the number of folders. */
     singleFolderForSingleComic?: boolean;
+    /** Receives the selected plugin folder ID; null / '0' retain legacy all-list semantics. */
     loadComics?: (page: number, folderId: string | null) => Awaitable<ComicPage>;
     loadNext?: (cursor: string | null, folderId: string) => Awaitable<{comics: SourceComic[]; next?: string}>;
+    /**
+     * Plugin IDs and names are preserved; no '0' entry is required or injected.
+     * Only absent/empty folder lists use the host's default all entry.
+     * favorited contains these same IDs for a comic; comicId is null for a folder listing.
+     */
     loadFolders?: (comicId: string | null) => Awaitable<{folders: Record<string, string>; favorited?: string[]}>;
     addFolder?: (name: string) => Awaitable<void>;
     deleteFolder?: (id: string) => Awaitable<void>;
     addOrDelFavorite?: (comicId: string, folderId: string, adding: boolean, favoriteId?: string | null) => Awaitable<void>;
   };
+  /** Required for presentation.dailyRecommendation.mode='plugin'.
+   * Return the website's full selected list in display order. No seven-item limit.
+   * Empty results hide the carousel. Throw on failure to retain the last cache.
+   */
+  dailyRecommendation?: {load(): Awaitable<SourceDailyRecommendationItem[]>};
   settings?: Record<string, SourceSetting>;
   presentation?: SourcePresentation;
   actions?: Record<string, () => Awaitable<unknown>>;

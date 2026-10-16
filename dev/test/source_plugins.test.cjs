@@ -164,7 +164,7 @@ test("JM resolves numeric and prefixed IDs through the album API without keyword
     assert.equal(result.comics.length, 1);
     assert.equal(result.comics[0].id, "12345");
     assert.equal(result.comics[0].title, "ID result");
-    assert.equal(result.comics[0].subTitle, "First, Second");
+    assert.equal(result.comics[0].subTitle, undefined);
     assert.match(result.comics[0].cover, /\/media\/albums\/12345_3x4\.jpg$/);
     assert.deepEqual(Array.from(result.comics[0].tags), ["Category"]);
     assert.equal(app.requests.length, 1);
@@ -182,7 +182,10 @@ test("JM falls back to keyword search when an ID is unavailable or has no valid 
   ]) {
     const app = plugin("jm", (request) => {
       if (new URL(request.url).pathname === "/album") return album(request);
-      assert.equal(new URL(request.url).searchParams.get("search_query"), "12345");
+      assert.equal(
+        new URL(request.url).searchParams.get("search_query"),
+        "12345",
+      );
       return jmResponse(request, {
         content: [{ id: 67890, name: "Keyword fallback" }],
         total: 81,
@@ -232,26 +235,51 @@ test("JM normalizes ID detail input and reports failures after keyword fallback"
   assert.equal(details.id, "12345");
   assert.equal(details.title, "Details");
   const unavailable = plugin("jm", () => ({ status: 503, data: {} }));
-  await assert.rejects(unavailable.source.search.load("12345", [], 1), /JM HTTP 503/);
+  await assert.rejects(
+    unavailable.source.search.load("12345", [], 1),
+    /JM HTTP 503/,
+  );
   assert.equal(unavailable.requests.length, 2);
   const expired = plugin("jm", () => ({ status: 401, data: {} }));
-  await assert.rejects(expired.source.search.load("12345", [], 1), /hazuki_auth_expired/);
+  await assert.rejects(
+    expired.source.search.load("12345", [], 1),
+    /hazuki_auth_expired/,
+  );
   assert.equal(expired.requests.length, 2);
 });
 
-test("Picacg declares independent detail rows and detail tag groups", () => {
+test("Picacg keeps list tags independent of plugin-defined info rows", () => {
   const { source } = plugin("picacg");
   const presentation = source.presentation;
-  assert.equal(presentation.showUploader, true);
-  assert.equal(presentation.showCategories, true);
-  assert.equal(presentation.showChineseTeam, true);
-  assert.equal(presentation.showPageCount, true);
-  assert.deepEqual(Array.from(presentation.detailTagGroups), ["tag", "tags", "标签"]);
+  assert.equal(presentation.showPageCount, undefined);
+  for (const key of [
+    "showUploader",
+    "showCategories",
+    "showChineseTeam",
+    "detailTagGroups",
+  ])
+    assert.equal(presentation[key], undefined);
   assert.ok(presentation.listTagGroups.includes("category"));
-  assert.ok(!presentation.detailTagGroups.includes("category"));
   assert.equal(presentation.directComicIdRules, undefined);
   assert.equal(presentation.dailyRecommendation, undefined);
 });
+
+for (const [id, expression] of [
+  ["picacg", 'picacgComic({_id: "comic", title: "Comic", author: "Artist"})'],
+  [
+    "copy_manga",
+    'copyComic({path_word: "comic", name: "Comic", author: [{name: "Artist"}]})',
+  ],
+]) {
+  test(id + " does not put authors in comic subtitles", () => {
+    const app = plugin(id);
+    const comic = vm.runInContext(expression, app.context);
+    assert.equal(comic.id, "comic");
+    assert.equal(comic.subTitle, undefined);
+    assert.equal(comic.subtitle, undefined);
+  });
+}
+
 function picaResponse(request) {
   if (request.url.endsWith("/auth/sign-in"))
     return { data: { data: { token: "pica-token" } } };
@@ -390,7 +418,11 @@ test("Picacg shares a single relogin for concurrent expired requests and returns
           },
         };
       return {
-        data: { data: { comic: { title: "Recovered", pagesCount: 7 } } },
+        data: {
+          data: {
+            comic: { title: "Recovered", pagesCount: 7, author: "Artist" },
+          },
+        },
       };
     },
     { token: "expired", account: ["user", "password"] },
@@ -398,6 +430,16 @@ test("Picacg shares a single relogin for concurrent expired requests and returns
   const details = await app.source.comic.loadInfo("comic-id");
   assert.equal(details.title, "Recovered");
   assert.equal(details.pageCount, 7);
+  assert.equal(details.headerStats[0].action, "like");
+  assert.equal(details.headerStats[1].text.en, "7 pages");
+  assert.deepEqual(Array.from(details.tags.Author), ["Artist"]);
+  assert.deepEqual(
+    JSON.parse(JSON.stringify(details.infoFields.map((row) => row.label.en))),
+    ["Author", "Categories", "Tags", "Uploader", "Chinese team", "Status"],
+  );
+  assert.deepEqual(Array.from(details.infoFields[0].values), ["Artist"]);
+  assert.equal(details.infoFields[0].action, "search");
+  assert.equal(details.subTitle, undefined);
   assert.equal(details.chapters.get("1"), "First");
   assert.equal(loginCount, 1);
 });
@@ -780,7 +822,12 @@ test("CopyManga flattens grouped chapters into the declared ID-to-title contract
     return {
       data: {
         results: {
-          comic: { name: "Comic", uuid: "uuid", status: { display: "连载中" } },
+          comic: {
+            name: "Comic",
+            uuid: "uuid",
+            author: [{ name: "Artist", path_word: "artist" }],
+            status: { display: "连载中" },
+          },
           groups: {
             main: { path_word: "main" },
             extra: { path_word: "extra" },
@@ -799,6 +846,13 @@ test("CopyManga flattens grouped chapters into the declared ID-to-title contract
     ],
   );
   assert.equal(result.subId, "uuid");
+  assert.deepEqual(Array.from(result.tags["作者"]), ["Artist"]);
+  assert.deepEqual(Array.from(result.infoFields[0].values), ["Artist"]);
+  assert.equal(result.infoFields[2].label.en, "Status");
+  assert.equal(result.infoFields[2].action, undefined);
+  assert.equal(result.headerStats.length, 1);
+  assert.equal(result.headerStats[0].text, result.tags["状态"][0]);
+  assert.equal(result.subTitle, undefined);
 });
 
 test("CopyManga discovers endpoints through API v1 and preserves a user-selected host", async () => {
@@ -825,18 +879,82 @@ test("CopyManga discovers endpoints through API v1 and preserves a user-selected
   );
 });
 
-
 test("JM normalizes HTTPS URLs inside the plugin without altering unrelated URLs", () => {
   const app = plugin("jm");
-  const normalize = (url) => vm.runInContext(`jmNormalizeUrl(${JSON.stringify(url)})`, app.context);
-  assert.equal(normalize("https://www.cdntwice.org:45176/a?q=1#frag"), "https://www.cdntwice.org/a?q=1#frag");
-  assert.equal(normalize("https://user:pass@cdnsha.jmapiproxyxxx.vip:45176/a"), "https://user:pass@cdnsha.jmapiproxyxxx.vip/a");
-  assert.equal(normalize("https://example.com:45176/a"), "https://example.com:45176/a");
-  assert.equal(normalize("http://www.cdntwice.org:45176/a"), "http://www.cdntwice.org:45176/a");
-  const image = app.source.comic.onImageLoad("https://cdnhth.jmapiproxyxxx.vip:45176/1.jpg", "7", "250000");
+  const normalize = (url) =>
+    vm.runInContext(`jmNormalizeUrl(${JSON.stringify(url)})`, app.context);
+  assert.equal(
+    normalize("https://www.cdntwice.org:45176/a?q=1#frag"),
+    "https://www.cdntwice.org/a?q=1#frag",
+  );
+  assert.equal(
+    normalize("https://user:pass@cdnsha.jmapiproxyxxx.vip:45176/a"),
+    "https://user:pass@cdnsha.jmapiproxyxxx.vip/a",
+  );
+  assert.equal(
+    normalize("https://example.com:45176/a"),
+    "https://example.com:45176/a",
+  );
+  assert.equal(
+    normalize("http://www.cdntwice.org:45176/a"),
+    "http://www.cdntwice.org:45176/a",
+  );
+  const image = app.source.comic.onImageLoad(
+    "https://cdnhth.jmapiproxyxxx.vip:45176/1.jpg",
+    "7",
+    "250000",
+  );
   assert.equal(image.url, "https://cdnhth.jmapiproxyxxx.vip/1.jpg");
   assert.equal(image.segments, 10);
-  const later = app.source.comic.onImageLoad("https://cdnhth.jmapiproxyxxx.vip:45176/1.jpg", "7", "500000");
+  const later = app.source.comic.onImageLoad(
+    "https://cdnhth.jmapiproxyxxx.vip:45176/1.jpg",
+    "7",
+    "500000",
+  );
   const hash = crypto.createHash("md5").update("5000001").digest("hex");
   assert.equal(later.segments, (hash.charCodeAt(hash.length - 1) % 8) * 2 + 2);
+});
+
+test("JM declares ordered info rows and an explicit view count", async () => {
+  const app = plugin("jm", (request) =>
+    jmResponse(request, {
+      name: "Example",
+      author: ["Artist"],
+      tags: ["Adventure"],
+      works: ["Original"],
+      actors: ["Hero"],
+      total_views: 123,
+    }),
+  );
+  const details = await app.source.comic.loadInfo("12345");
+  assert.equal(details.viewsCount, 123);
+  assert.equal(details.headerStats[0].text.en, "0 likes");
+  assert.equal(details.headerStats[0].action, "like");
+  assert.equal(details.headerStats[1].text.en, "123 views");
+  assert.deepEqual(
+    JSON.parse(JSON.stringify(details.infoFields.map((row) => row.label.en))),
+    ["Author", "Tags", "Work", "Characters"],
+  );
+  assert.deepEqual(Array.from(details.infoFields[0].values), ["Artist"]);
+  assert.ok(details.infoFields.every((row) => row.action === "search"));
+});
+
+test("comment services explicitly opt into both detail and reader comments", () => {
+  for (const id of ["jm", "copy_manga", "picacg"]) {
+    const { source } = plugin(id);
+    assert.equal(source.presentation.showComments, true, id);
+    assert.equal(typeof source.comic.loadComments, "function", id);
+  }
+  assert.equal(
+    plugin("relamanhua").source.presentation.showComments,
+    undefined,
+  );
+});
+
+test("existing sources do not opt into website daily recommendations", () => {
+  for (const id of ["copy_manga", "picacg", "relamanhua"]) {
+    const { source } = plugin(id);
+    assert.equal(source.presentation.dailyRecommendation, undefined, id);
+    assert.equal(source.dailyRecommendation, undefined, id);
+  }
 });

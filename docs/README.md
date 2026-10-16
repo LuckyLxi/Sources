@@ -4,7 +4,9 @@
 
 正式插件放在仓库根目录，每个插件是可直接导入的单个 JS 文件，无需打包。
 
-[API 规范](API.md) · [类型声明](hazuki-source.d.ts) · [最小示例](example.js)
+[API 规范](API.md) · [类型声明](hazuki-source.d.ts) · [最小示例](examples/example.js)
+
+开发文档、类型声明和示例集中在 `docs/`，测试及开发工具位于 `dev/`。
 
 ## 本地检查
 
@@ -43,7 +45,7 @@ npm --prefix dev run index:check
 ```
 
 自动提交使用内置 `GITHUB_TOKEN`，仓库权限及分支规则须允许 bot 写入 `main`。
-`dev/.github/` 是另一份开发检查模板，需移至根目录 `.github/workflows/` 才会运行。
+[开发检查工作流](../.github/workflows/check.yml) 会执行静态检查、格式检查和测试。
 
 ## 宿主回归与许可
 

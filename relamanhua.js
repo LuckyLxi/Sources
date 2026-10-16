@@ -1,4 +1,4 @@
-/// <reference path="dev/hazuki-source.d.ts" />
+/// <reference path="docs/hazuki-source.d.ts" />
 // @ts-check
 
 /*
@@ -1301,10 +1301,11 @@ function relamanhuaParseDetail(doc, pathWord) {
     doc.querySelector(".comicParticulars-synopsis p");
   /** @type {Record<string, string[]>} */
   const groups = {};
+  if (authors.length) groups["作者"] = authors;
   if (themes.length) groups["题材"] = themes;
   if (tags.length) groups["标签"] = tags;
   if (aliases.length) groups["别名"] = aliases;
-  if (statuses.length) groups["状态"] = statuses;
+  groups["状态"] = statuses;
   /** @type {SourceComicDetails} */
   const details = {
     id: pathWord,
@@ -1314,9 +1315,20 @@ function relamanhuaParseDetail(doc, pathWord) {
         : pathWord,
     cover: coverNode ? relamanhuaAbsolute(coverNode.attributes.src) : "",
     chapters: {},
+    headerStats: [{ text: statuses.join(" · ") }],
     tags: groups,
+    infoFields: [
+      {
+        label: { zh: "作者", en: "Author" },
+        values: authors,
+        action: "search",
+      },
+      { label: { zh: "题材", en: "Themes" }, values: themes, action: "search" },
+      { label: { zh: "标签", en: "Tags" }, values: tags, action: "search" },
+      { label: { zh: "别名", en: "Aliases" }, values: aliases, action: "copy" },
+      { label: { zh: "状态", en: "Status" }, values: statuses },
+    ],
   };
-  if (authors.length) details.subTitle = authors.join(" / ");
   if (introNode) {
     const description = relamanhuaText(introNode.text);
     if (description) details.description = description;
@@ -1383,8 +1395,6 @@ function relamanhuaComicFromSearch(item) {
     title: relamanhuaText(item && item.name) || pathWord,
     cover: relamanhuaAbsolute(item && item.cover),
   };
-  const authors = relamanhuaNameList(item && item.author);
-  if (authors.length) comic.subTitle = authors.join(" / ");
   const themes = relamanhuaNameList(item && item.theme);
   if (themes.length) comic.tags = themes;
   return comic;
@@ -1954,8 +1964,6 @@ function relamanhuaNestedComic(item) {
     title: relamanhuaText(node && node.name) || pathWord,
     cover: relamanhuaAbsolute(node && node.cover),
   };
-  const authors = relamanhuaNameList(node && node.author);
-  if (authors.length) comic.subTitle = authors.join(" / ");
   const themes = relamanhuaNameList(node && node.theme);
   if (themes.length) comic.tags = themes;
   return comic;
@@ -2321,7 +2329,7 @@ async function relamanhuaSendChapterComment(chapterId, text) {
 Hazuki.registerSource({
   id: "relamanhua",
   name: "热辣漫画",
-  version: "1.3.3",
+  version: "1.3.4",
   apiVersion: 1,
   presentation: {
     buttons: [
@@ -2536,7 +2544,10 @@ Hazuki.registerSource({
           details.isFavorite = meta.collected;
           if (meta.locked) {
             const groups = details.tags || {};
-            groups["状态"] = (groups["状态"] || []).concat("付費試看");
+            const statuses = groups["状态"] || [];
+            statuses.push("付費試看");
+            groups["状态"] = statuses;
+            details.headerStats = [{ text: statuses.join(" · ") }];
             details.tags = groups;
           }
         } catch (error) {

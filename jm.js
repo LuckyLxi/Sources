@@ -5,7 +5,7 @@ Adapted from [venera-configs/jm.js](https://github.com/venera-app/venera-configs
 
 The upstream repository did not contain a root license file at this commit. No additional license grant is asserted for the upstream code. Original comments and attribution are retained. Hazuki migration hooks use the project license.
 */
-/// <reference path="dev/hazuki-source.d.ts" />
+/// <reference path="docs/hazuki-source.d.ts" />
 // @ts-check
 
 const jmFallbackDomains = ['www.cdntwice.org', 'www.cdnsha.org', 'www.cdnaspa.cc', 'www.cdnntr.cc'];
@@ -200,7 +200,6 @@ function jmParseComic(comic) {
   return {
     id: String(comic.id),
     title: String(comic.name ?? ''),
-    subTitle: Array.isArray(comic.author) ? comic.author.join(', ') : String(comic.author ?? ''),
     cover: jmCoverUrl(comic.id),
     tags: [comic.category?.title, comic.category_sub?.title].filter(Boolean),
   };
@@ -269,7 +268,7 @@ function jmProfile(profile, uid, fallbackName = '') {
 const source = {
   id: 'jm',
   name: 'JMComic',
-  version: '1.0.3',
+  version: '1.0.4',
   apiVersion: 1,
 
   async init() {
@@ -582,6 +581,17 @@ const source = {
           Actor: data.actors ?? [],
           View: data.total_views ? [String(data.total_views)] : [],
         },
+        infoFields: [
+          { label: { zh: '作者', en: 'Author' }, values: data.author ?? [], action: 'search' },
+          { label: { zh: '标签', en: 'Tags' }, values: data.tags ?? [], action: 'search' },
+          { label: { zh: '作品', en: 'Work' }, values: data.works ?? [], action: 'search' },
+          { label: { zh: '角色', en: 'Characters' }, values: data.actors ?? [], action: 'search' },
+        ],
+        viewsCount: data.total_views ?? '',
+        headerStats: [
+          { text: { zh: `${Number(data.likes || 0)}点赞`, en: `${Number(data.likes || 0)} likes` }, action: 'like' },
+          { text: data.total_views == null ? '' : { zh: `${data.total_views}浏览量`, en: `${data.total_views} views` } },
+        ],
         recommend: jmArray(data.related_list).map(jmParseComic),
         isFavorite: Boolean(data.is_favorite),
         isLiked: Boolean(data.liked),
@@ -753,6 +763,7 @@ const source = {
     },
   },
   presentation: {
+    showComments: true,
     buttons: [
       { id: 'checkIn', location: 'homeProfile' },
       { id: 'autoCheckIn', location: 'other' },

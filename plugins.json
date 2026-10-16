@@ -4,25 +4,25 @@
     {
       "id": "jm",
       "name": "JMComic",
-      "version": "1.0.3",
+      "version": "1.0.4",
       "downloadUrl": "https://cdn.jsdelivr.net/gh/LuckyLxi/Sources@main/jm.js"
     },
     {
       "id": "copy_manga",
       "name": "CopyManga",
-      "version": "1.0.1",
+      "version": "1.0.2",
       "downloadUrl": "https://cdn.jsdelivr.net/gh/LuckyLxi/Sources@main/copy_manga.js"
     },
     {
       "id": "picacg",
       "name": "Picacg",
-      "version": "1.0.2",
+      "version": "1.0.3",
       "downloadUrl": "https://cdn.jsdelivr.net/gh/LuckyLxi/Sources@main/picacg.js"
     },
     {
       "id": "relamanhua",
       "name": "热辣漫画",
-      "version": "1.3.3",
+      "version": "1.3.4",
       "downloadUrl": "https://cdn.jsdelivr.net/gh/LuckyLxi/Sources@main/relamanhua.js"
     }
   ]
