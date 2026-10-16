@@ -94,8 +94,10 @@ interface SourcePresentation {
   enrichMissingTags?: boolean;
   /** Compatibility aliases for previously saved favorite sort values. */
   favoriteOrderAliases?: Record<string, string>;
-  /** Local sorting uses these app strategies rather than source-specific codes. */
+  /** Migrate old local preferences once; local sorting is now owned by the host. */
   localFavoriteOrders?: Record<string, 'savedNewest' | 'savedOldest' | 'updatedNewest'>;
+  /** Display labels for cloud favorite orders; unknown unlabeled orders show their code. */
+  favoriteOrderLabels?: Record<string, SourceText>;
   favoriteOrders?: string[]; favoriteDefaultOrder?: string; favoriteOrderSetting?: string;
   requiresLogin?: boolean; dailyCheckIn?: boolean; skipPeriodicRelogin?: boolean;
   commentReplies?: boolean;

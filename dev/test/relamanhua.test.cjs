@@ -1,7 +1,7 @@
 // Regression tests for the relamanhua (热辣漫画 / manga2026.com) source plugin.
 //
-// The fixtures under test/fixtures/relamanhua are unmodified responses captured
-// from the live site, so these tests run offline and without an account while
+// The fixtures under test/fixtures/relamanhua are live responses or documented
+// catalogue excerpts, so these tests run offline and without an account while
 // still exercising the real page shapes, including the AES-encrypted chapter
 // and page payloads. The expected image list is produced independently with
 // node:crypto, so a broken bundled AES implementation cannot pass.
@@ -61,6 +61,12 @@ function serve(url) {
     return ok(
       /skirtnonakawakedamonodeshita/.test(url) ? fixture("detail2.html") : fixture("detail.html"),
     );
+  }
+  if (/\/recommend\?/.test(url)) {
+    return ok(fixture(/offset=60(?:&|$)/.test(url) ? "recommend2.html" : "recommend.html"));
+  }
+  if (/\/comics\?type=2(?:&|$)/.test(url)) {
+    return ok(fixture(/offset=50(?:&|$)/.test(url) ? "comics_paid2.html" : "comics_paid.html"));
   }
   if (/\/comics\?/.test(url)) return ok(fixture("comics.html"));
   if (/\/rank$/.test(url)) return ok(fixture("rank.html"));
@@ -323,16 +329,64 @@ test("relamanhua explore 推薦 keeps only cover-bearing comic rails", async () 
   // 熱門更新 and the anime rails carry no cover, so they must not appear.
   sameValues(titles, ["漫畫推薦", "付費漫畫"], "homepage section titles");
   const recommended = sections[0];
+  assert.equal(recommended.viewMore, "category:漫畫推薦@recommend");
   assert.equal(recommended.comics.length, 6);
   assert.equal(recommended.comics[0].id, "yuushanoisshuukanmuramusumehen");
   assert.equal(recommended.comics[0].title, "勇者の一週間 村娘編");
   assert.match(recommended.comics[0].cover, /^https:\/\/sy\.mangafunb\.fun\/y\//);
   const paid = sections[1];
+  assert.equal(paid.viewMore, "category:付費漫畫@2");
   assert.equal(paid.comics.length, 12);
   for (const comic of paid.comics) {
     assert.ok(comic.id && comic.title, "id and title required");
     assert.match(comic.cover, /^https:\/\//, "cover must be absolute");
   }
+});
+
+test("relamanhua homepage view-more links load distinct pages from their own lists", async () => {
+  const app = plugin();
+  const sections = await app.source.explore[0].load(null);
+  for (const [index, endpoint, type, limit, total] of [
+    [0, "/recommend", "1200102", 60, 30],
+    [1, "/comics", "2", 50, 1419],
+  ]) {
+    const section = sections[index];
+    assert.ok(section.viewMore.startsWith("category:"), "more must invoke the paged category loader");
+    const [category, param] = section.viewMore.slice("category:".length).split("@");
+    const pages = [];
+    for (const page of [1, 2]) {
+      const result = await app.source.categoryComics.load(category, param, [], page);
+      const request = new URL(app.requests.at(-1));
+      assert.equal(request.pathname, endpoint);
+      assert.equal(request.searchParams.get("type"), type);
+      assert.equal(request.searchParams.get("offset"), String((page - 1) * limit));
+      assert.equal(request.searchParams.get("limit"), String(limit));
+      // Each fixture keeps two complete cards from the real paginated page.
+      assert.equal(result.comics.length, 2);
+      assert.equal(result.maxPage, total);
+      pages.push(result);
+    }
+    const firstIds = new Set(pages[0].comics.map((comic) => comic.id));
+    assert.ok(pages[1].comics.every((comic) => !firstIds.has(comic.id)), "page 2 must not repeat page 1");
+    const previewIds = new Set(section.comics.map((comic) => comic.id));
+    assert.ok(pages[1].comics.every((comic) => !previewIds.has(comic.id)), "more must go beyond the homepage preview");
+  }
+});
+
+test("relamanhua recommendations omit catalogue filters and normalize invalid pages", async () => {
+  const app = plugin();
+  const keys = ["漫畫推薦", "recommend"];
+  const visibleGroups = app.source.categoryComics.optionList.filter((group) =>
+    (!group.showWhen || keys.some((key) => group.showWhen.includes(key))) &&
+    (!group.notShowWhen || !keys.some((key) => group.notShowWhen.includes(key))),
+  );
+  assert.equal(visibleGroups.length, 0, "the recommendation list has no catalogue filters");
+  await app.source.categoryComics.load("漫畫推薦", "recommend", ["gedou", "popular"], 0);
+  const request = new URL(app.requests.at(-1));
+  assert.equal(request.pathname, "/recommend");
+  assert.equal(request.searchParams.get("offset"), "0");
+  assert.equal(request.searchParams.has("theme"), false);
+  assert.equal(request.searchParams.has("ordering"), false);
 });
 
 test("relamanhua explore 排行榜 reads every comic ranking tab", async () => {
@@ -379,7 +433,7 @@ test("relamanhua categoryComics forwards type, theme and ordering", async () => 
   sameValues(category.parts[0].categoryParams, ["1", "2"], "type params");
 
   const groups = app.source.categoryComics.optionList;
-  assert.equal(groups.length, 2);
+  assert.equal(groups.length, 4);
   assert.equal(groups[0].options[0], "-全部題材");
   assert.ok(groups[0].options.includes("gedou-格鬥"), "theme options carry slug and label");
 
@@ -388,7 +442,74 @@ test("relamanhua categoryComics forwards type, theme and ordering", async () => 
   assert.match(app.requests[0], /theme=gedou/);
   assert.match(app.requests[0], /ordering=-popular/);
   assert.match(app.requests[0], /offset=100&limit=50/, "page 3 starts at offset 100");
-  assert.equal(result.comics.length, 50);
+  assert.equal(result.comics.length, 2, "paid catalogue fixture keeps two cards");
+});
+
+test("relamanhua exposes the active paid comic tags with host-safe option values", () => {
+  const groups = plugin().source.categoryComics.optionList;
+  const female = groups[2];
+  const male = groups[3];
+  // Counts and representative slugs were checked against /filter?point=1/2.
+  assert.equal(female.options.length, 399, "398 active female tags plus all");
+  assert.equal(male.options.length, 250, "249 active male tags plus all");
+  assert.equal(female.options[0], "-全部女性標簽");
+  assert.equal(male.options[0], "-全部男性標簽");
+  assert.ok(female.options.includes("female_big_breasts-大胸(女)"));
+  assert.ok(male.options.includes("male_glasses-眼鏡(男)"));
+  assert.ok(female.options.includes("eye%2Doveringbang-遮眼劉海(女)"));
+  assert.ok(female.options.includes("female%20garter%20belt-吊襪帶(女)"));
+  for (const group of [female, male]) {
+    sameValues(group.showWhen, ["付費漫畫", "2"], "tags only appear for paid comics");
+    const values = group.options.slice(1).map((option) => {
+      const separator = option.indexOf("-");
+      assert.ok(separator > 0 && separator < option.length - 1);
+      const value = option.slice(0, separator);
+      assert.doesNotThrow(() => decodeURIComponent(value));
+      return value;
+    });
+    assert.equal(new Set(values).size, values.length, "tag options are unique");
+    assert.ok(!group.options.some((option) => option.startsWith("undefined-")));
+  }
+});
+
+test("relamanhua paid tag filters preserve theme, ordering and pagination", async () => {
+  const app = plugin();
+  await app.source.categoryComics.load(
+    "付費漫畫", "2", ["COLOR", "popular", "eye%2Doveringbang", "male%20garter%20belt"], 2,
+  );
+  const query = new URL(app.requests[0]).searchParams;
+  assert.equal(query.get("type"), "2");
+  assert.equal(query.get("theme"), "COLOR");
+  assert.equal(query.get("ordering"), "-popular");
+  assert.equal(query.get("offset"), "50");
+  assert.equal(query.get("limit"), "50");
+  assert.equal(query.get("female"), "eye-overingbang");
+  assert.equal(query.get("male"), "male garter belt");
+
+  await app.source.categoryComics.load("付費漫畫", "2", ["", "", "female garter belt", ""], 1);
+  const femaleOnly = new URL(app.requests[1]).searchParams;
+  assert.equal(femaleOnly.get("female"), "female garter belt");
+  assert.equal(femaleOnly.has("male"), false);
+
+  await app.source.categoryComics.load("付費漫畫", "2", ["", "", "", "male_glasses"], 1);
+  const maleOnly = new URL(app.requests[2]).searchParams;
+  assert.equal(maleOnly.has("female"), false);
+  assert.equal(maleOnly.get("male"), "male_glasses");
+});
+
+test("relamanhua empty, unknown and inapplicable tag filters do not reach the site", async () => {
+  const app = plugin();
+  for (const [type, options] of [
+    ["2", []],
+    ["2", ["", "updated", "", ""]],
+    ["2", ["", "updated", "unknown", "%broken"]],
+    ["1", ["gedou", "updated", "female_glasses", "male_glasses"]],
+  ]) {
+    await app.source.categoryComics.load("", type, options, 1);
+    const query = new URL(app.requests.at(-1)).searchParams;
+    assert.equal(query.has("female"), false);
+    assert.equal(query.has("male"), false);
+  }
 });
 
 test("relamanhua login sends the documented payload and stores the token", async () => {
