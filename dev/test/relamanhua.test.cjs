@@ -609,6 +609,80 @@ test("relamanhua categoryComics forwards type, theme and ordering", async () => 
   );
 });
 
+test("relamanhua category page exposes themes and every active paid tag", () => {
+  const source = plugin().source;
+  const parts = source.category.parts;
+  sameValues(
+    parts.map((part) => part.name),
+    ["類型", "題材", "女性標簽", "男性標簽"],
+    "category groups",
+  );
+  for (const [part, optionIndex, key] of [
+    [parts[1], 0, "theme"],
+    [parts[2], 2, "female"],
+    [parts[3], 3, "male"],
+  ]) {
+    const options =
+      source.categoryComics.optionList[optionIndex].options.slice(1);
+    assert.equal(part.itemType, "category");
+    assert.equal(part.categories.length, options.length);
+    assert.equal(part.categoryParams.length, options.length);
+    options.forEach((option, index) => {
+      const separator = option.indexOf("-");
+      assert.equal(part.categories[index], option.slice(separator + 1));
+      assert.equal(
+        part.categoryParams[index],
+        key + ":" + decodeURIComponent(option.slice(0, separator)),
+      );
+    });
+    if (key !== "theme") {
+      for (const group of source.categoryComics.optionList.slice(2)) {
+        assert.ok(
+          part.categoryParams.every((param) => group.showWhen.includes(param)),
+        );
+      }
+    }
+  }
+});
+
+test("relamanhua category tags load the selected filter directly", async () => {
+  const app = plugin();
+  for (const [param, type, key, slug] of [
+    ["theme:gedou", "1", "theme", "gedou"],
+    ["female:eye-overingbang", "2", "female", "eye-overingbang"],
+    ["female:female garter belt", "2", "female", "female garter belt"],
+    ["male:male_glasses", "2", "male", "male_glasses"],
+  ]) {
+    // Loading is keyed by the parameter, so translated labels cannot affect it.
+    const result = await app.source.categoryComics.load("标签", param, [], 2);
+    const query = new URL(app.requests.at(-1)).searchParams;
+    assert.equal(query.get("type"), type);
+    assert.equal(query.get(key), slug);
+    assert.equal(query.get("ordering"), "-datetime_updated");
+    assert.equal(query.get("offset"), "50");
+    assert.ok(result.comics.length > 0);
+    for (const otherKey of ["theme", "female", "male"].filter(
+      (value) => value !== key,
+    )) {
+      assert.equal(query.has(otherKey), false);
+    }
+  }
+
+  await app.source.categoryComics.load(
+    "眼鏡(男)",
+    "male:male_glasses",
+    ["COLOR", "popular", "female_glasses", "male%20garter%20belt"],
+    3,
+  );
+  const query = new URL(app.requests.at(-1)).searchParams;
+  assert.equal(query.get("type"), "2");
+  assert.equal(query.get("theme"), "COLOR");
+  assert.equal(query.get("female"), "female_glasses");
+  assert.equal(query.get("male"), "male garter belt");
+  assert.equal(query.get("ordering"), "-popular");
+  assert.equal(query.get("offset"), "100");
+});
+
 test("relamanhua exposes the active paid comic tags with host-safe option values", () => {
   const groups = plugin().source.categoryComics.optionList;
   const female = groups[2];
@@ -624,7 +698,7 @@ test("relamanhua exposes the active paid comic tags with host-safe option values
   assert.ok(female.options.includes("female%20garter%20belt-吊襪帶(女)"));
   for (const group of [female, male]) {
     sameValues(
-      group.showWhen,
+      group.showWhen.slice(0, 2),
       ["付費漫畫", "2"],
       "tags only appear for paid comics",
     );

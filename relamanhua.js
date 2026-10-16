@@ -1934,6 +1934,47 @@ function relamanhuaSelectedTag(value, tags) {
   return "";
 }
 
+/** Category parameters carry the filter slug independently of its display label. */
+const relamanhuaTagCategories = [
+  { name: "題材", key: "theme", type: "1", tags: relamanhuaThemes },
+  { name: "女性標簽", key: "female", type: "2", tags: relamanhuaFemaleTags },
+  { name: "男性標簽", key: "male", type: "2", tags: relamanhuaMaleTags },
+];
+const relamanhuaPaidCategoryKeys = ["付費漫畫", "2"].concat(
+  relamanhuaTagCategories
+    .filter((group) => group.type === "2")
+    .flatMap((group) => group.tags.map((tag) => group.key + ":" + tag[0])),
+);
+
+/**
+ * @param {string | null} param
+ * @param {string[]} options
+ * @param {number} page
+ * @returns {Promise<ComicPage>}
+ */
+async function relamanhuaLoadCategory(param, options, page) {
+  if (param === "recommend") return relamanhuaLoadRecommendations(page);
+  const group = relamanhuaTagCategories.find((group) =>
+    (param || "").startsWith(group.key + ":"),
+  );
+  const slug = group
+    ? relamanhuaSelectedTag(
+        (param || "").slice(group.key.length + 1),
+        group.tags,
+      )
+    : "";
+  return relamanhuaLoadCatalog(
+    group ? group.type : param || "1",
+    options[0] || (group && group.key === "theme" ? slug : ""),
+    relamanhuaOrdering(options[1]),
+    page,
+    relamanhuaSelectedTag(options[2], relamanhuaFemaleTags) ||
+      (group && group.key === "female" ? slug : ""),
+    relamanhuaSelectedTag(options[3], relamanhuaMaleTags) ||
+      (group && group.key === "male" ? slug : ""),
+  );
+}
+
 /**
  * Form-encode a flat object the way the site's own client does.
  * @param {Record<string, string | number>} values
@@ -2329,7 +2370,7 @@ async function relamanhuaSendChapterComment(chapterId, text) {
 Hazuki.registerSource({
   id: "relamanhua",
   name: "热辣漫画",
-  version: "1.3.4",
+  version: "1.3.5",
   apiVersion: 1,
   presentation: {
     buttons: [
@@ -2410,6 +2451,12 @@ Hazuki.registerSource({
         categories: ["免費漫畫", "付費漫畫"],
         categoryParams: ["1", "2"],
       },
+      ...relamanhuaTagCategories.map((group) => ({
+        name: group.name,
+        itemType: /** @type {const} */ ("category"),
+        categories: group.tags.map((tag) => tag[1]),
+        categoryParams: group.tags.map((tag) => group.key + ":" + tag[0]),
+      })),
     ],
   },
   categoryComics: {
@@ -2430,7 +2477,7 @@ Hazuki.registerSource({
       },
       {
         label: "女性標簽",
-        showWhen: ["付費漫畫", "2"],
+        showWhen: relamanhuaPaidCategoryKeys,
         options: ["-全部女性標簽"].concat(
           relamanhuaFemaleTags.map(
             (tag) => relamanhuaTagOptionValue(tag[0]) + "-" + tag[1],
@@ -2439,7 +2486,7 @@ Hazuki.registerSource({
       },
       {
         label: "男性標簽",
-        showWhen: ["付費漫畫", "2"],
+        showWhen: relamanhuaPaidCategoryKeys,
         options: ["-全部男性標簽"].concat(
           relamanhuaMaleTags.map(
             (tag) => relamanhuaTagOptionValue(tag[0]) + "-" + tag[1],
@@ -2451,17 +2498,8 @@ Hazuki.registerSource({
       options: relamanhuaRankOptions.map((rail) => rail[0] + "-" + rail[3]),
       load: (option, page) => relamanhuaLoadRanking(option, page),
     },
-    load: async (category, param, options, page) =>
-      param === "recommend"
-        ? relamanhuaLoadRecommendations(page)
-        : relamanhuaLoadCatalog(
-            param || "1",
-            options[0] || "",
-            relamanhuaOrdering(options[1]),
-            page,
-            relamanhuaSelectedTag(options[2], relamanhuaFemaleTags),
-            relamanhuaSelectedTag(options[3], relamanhuaMaleTags),
-          ),
+    load: (category, param, options, page) =>
+      relamanhuaLoadCategory(param, options, page),
   },
   favorites: {
     singleFolderForSingleComic: true,
