@@ -363,7 +363,7 @@ Hazuki.registerSource({
       // 插件自行请求和解析网站的推荐/轮播接口。
       return [
         {id: 'comic-a', title: '网站推荐漫画', cover: 'https://example.com/cover-a.jpg',
-         imageUrl: 'https://example.com/banner-a.jpg', caption: '每日精选'},
+         imageUrl: 'https://example.com/banner-a.jpg', bannerTitle: '本周人气新作', caption: '每日精选'},
         {id: 'comic-b', title: '另一部漫画', cover: 'https://example.com/cover-b.jpg'}
       ];
     }
@@ -371,7 +371,9 @@ Hazuki.registerSource({
 });
 ```
 
-返回值是漫画条目数组，沿用漫画摘要的 `id`、`title`、`cover`，并可选填 `imageUrl` 和 `caption`。`imageUrl` 用于轮播宣传图，省略时使用漫画封面；宿主不会拿宣传图覆盖原封面，点击仍打开该插件下对应漫画的详情。`caption` 是可选短文案，可写作者、推荐理由或网站栏目名称，不填也可正常展示。
+返回值是漫画条目数组，沿用目标漫画摘要的 `id`、`title`、`cover`，并可选填 `imageUrl`、`bannerTitle` 和 `caption`。`imageUrl` 用于轮播宣传图，省略或为空白时使用漫画封面；`bannerTitle` 用于轮播宣传标题，省略或为空白时使用漫画标题。`caption` 是独立的可选短文案，可写作者、推荐理由或网站栏目名称，不填也可正常展示。这些宣传字段只用于轮播，不会覆盖目标漫画的封面、标题或副标题；点击按 `id` 打开该插件下对应漫画的详情。
+
+网站轮播图、标题、文案与详情页不同是正常情况：将宣传图放入 `imageUrl`、宣传标题放入 `bannerTitle`、短文案放入 `caption`；`title`、`cover` 填写目标漫画本身的资料，不要把轮播宣传内容写入漫画字段。网站未提供漫画封面时可以省略 `cover`，详情页从 `comic.loadInfo(id)` 获取真实封面，宿主不会把 `imageUrl` 回填为漫画封面。旧插件无需新增字段，仍按原有规则展示。
 
 **插件直供不限制为 7 本：返回多少条就按原顺序显示多少条，不补齐、不随机打乱、不截取前 7 条。** 返回空数组表示当前没有推荐，会隐藏轮播；网络或解析失败应抛出错误，宿主保留本次运行中已显示的有效内容；刚启动时获取失败则不显示旧推荐。每项必须有非空 `id`、`title`，以及至少一张 `cover` 或 `imageUrl`。条目归属由宿主绑定当前插件，插件传入的其他源 ID 不生效；只接入可映射到漫画详情的轮播项目。
 

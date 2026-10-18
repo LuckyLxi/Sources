@@ -641,6 +641,50 @@ async function zaimanhuaHome() {
   return result.data;
 }
 
+/** Keep promotional titles/art separate from the target comic's metadata.
+ * @returns {Promise<SourceDailyRecommendationItem[]>}
+ */
+async function zaimanhuaRecommendations() {
+  const banners = zaimanhuaList((await zaimanhuaHome()).bannerList).filter(
+    (item) =>
+      Number(item.type) === 1 && /^[1-9]\d*$/.test(zaimanhuaText(item.obj_id)),
+  );
+  const ids = [...new Set(banners.map((item) => zaimanhuaText(item.obj_id)))];
+  // A comic may have several banners. Fetch its identity once while keeping
+  // every promotional item in the website's original order.
+  /** @type {Map<string, {title: string, cover: string}>} */
+  const comics = new Map();
+  await Promise.all(
+    ids.map(async (id) => {
+      const data = await zaimanhuaRequest("/api/v1/comic2/comic/detail", {
+        id,
+      });
+      const info = data.comicInfo;
+      if (!info || zaimanhuaText(info.id) !== id || !zaimanhuaText(info.title))
+        throw new Error("再漫画：轮播目标漫画不存在或资料异常");
+      comics.set(id, {
+        title: zaimanhuaText(info.title),
+        cover: zaimanhuaImageUrl(info.cover),
+      });
+    }),
+  );
+  return banners.map((item) => {
+    const id = zaimanhuaText(item.obj_id);
+    const comic = comics.get(id);
+    const imageUrl = zaimanhuaImageUrl(item.cover);
+    if (!comic || (!comic.cover && !imageUrl))
+      throw new Error("再漫画：轮播条目缺少可用图片");
+    return {
+      id,
+      title: comic.title,
+      ...(comic.cover ? { cover: comic.cover } : {}),
+      ...(imageUrl ? { imageUrl } : {}),
+      bannerTitle: zaimanhuaText(item.title),
+      caption: zaimanhuaText(item.sub_title),
+    };
+  });
+}
+
 /** @param {string} option @param {number} page @returns {Promise<ComicPage>} */
 async function zaimanhuaRanking(option, page) {
   const [cate = "1", duration = "1"] = option.split(":");
@@ -759,9 +803,9 @@ async function zaimanhuaDetails(id) {
     },
     infoFields: [
       { label: "作者", values: authors, action: "search" },
-      { label: "题材", values: themes },
+      { label: "题材", values: themes, action: "search" },
       { label: "状态", values: status },
-      { label: "读者", values: audience },
+      { label: "读者", values: audience, action: "search" },
       { label: "地区", values: region },
       {
         label: "别名",
@@ -970,7 +1014,7 @@ async function zaimanhuaLikeComment(id, _subId, commentId, isLike) {
 Hazuki.registerSource({
   id: "zaimanhua",
   name: "再漫画",
-  version: "1.4.0",
+  version: "1.4.2",
   apiVersion: 1,
   presentation: {
     showComments: true,
@@ -1028,19 +1072,7 @@ Hazuki.registerSource({
     addOrDelFavorite: zaimanhuaSetFavorite,
   },
   dailyRecommendation: {
-    load: async () =>
-      zaimanhuaList((await zaimanhuaHome()).bannerList)
-        .filter(
-          (item) =>
-            Number(item.type) === 1 &&
-            /^[1-9]\d*$/.test(zaimanhuaText(item.obj_id)),
-        )
-        .map((item) => ({
-          id: zaimanhuaText(item.obj_id),
-          title: zaimanhuaText(item.title),
-          imageUrl: zaimanhuaImageUrl(item.cover),
-          caption: zaimanhuaText(item.sub_title),
-        })),
+    load: zaimanhuaRecommendations,
   },
   explore: [
     {

@@ -89,6 +89,13 @@ function respond(url) {
         ),
     });
   }
+  if (
+    route.pathname === "/api/v1/comic2/comic/detail" &&
+    route.searchParams.get("id") !== "80825"
+  ) {
+    const info = fixture("banner-comics")[route.searchParams.get("id")];
+    if (info) return ok({ comicInfo: info });
+  }
   const routes = {
     "/api/v1/comic2/index": "home",
     "/api/v1/comic2/update_list": "update",
@@ -178,7 +185,7 @@ test("registers an API v1 source discoverable by the index generator", () => {
   const { buildIndex } = require("../scripts/update-plugin-index.cjs");
   const entry = buildIndex(ROOT).plugins.find((item) => item.id === source.id);
   assert.equal(entry.name, "再漫画");
-  assert.equal(entry.version, "1.4.0");
+  assert.equal(entry.version, "1.4.2");
   assert.equal(source.apiVersion, 1);
   assert.equal(source.comic.onReadingProgress, undefined);
   assert.equal(source.comic.loadReadingProgress, undefined);
@@ -798,13 +805,21 @@ test("home, updates and recommendations preserve the public site lists", async (
   assert.equal(sections.本周排行[0].id, String(home.weekRankList[0].comic_id));
   const banners = await source.dailyRecommendation.load();
   assert.equal(banners.length, home.bannerList.length);
-  assert.equal(banners[0].id, String(home.bannerList[0].obj_id));
-  assert.equal(banners[0].imageUrl, home.bannerList[0].cover);
-  assert.equal(
-    banners[0].cover,
-    undefined,
-    "promotional art is not a comic cover",
-  );
+  const comics = fixture("banner-comics");
+  for (const [index, banner] of banners.entries()) {
+    const original = home.bannerList[index];
+    const id = String(original.obj_id);
+    assert.deepEqual(plain(banner), {
+      id,
+      title: comics[id].title,
+      cover: comics[id].cover,
+      imageUrl: original.cover,
+      bannerTitle: original.title,
+      caption: original.sub_title,
+    });
+  }
+  assert.notEqual(banners[0].title, banners[0].bannerTitle);
+  assert.notEqual(banners[0].cover, banners[0].imageUrl);
   const updates = await source.explore[1].load(2);
   assert.equal(
     updates.maxPage,
@@ -815,6 +830,109 @@ test("home, updates and recommendations preserve the public site lists", async (
   assert.equal(requests.at(-1).url.searchParams.has("firstLetter"), false);
   const ranks = await source.explore[2].load(1);
   assert.equal(ranks.maxPage, 5);
+});
+
+test("banners preserve more than seven promotions and fetch each target only once", async () => {
+  const home = fixture("home");
+  home.data.data.bannerList = Array.from({ length: 10 }, (_, index) => ({
+    type: 1,
+    obj_id: 80825,
+    title: `宣传语 ${index}`,
+    sub_title: `说明 ${index}`,
+    cover: `https://images.zaimanhua.com/tuijian/test-${index}.jpg`,
+  }));
+  home.data.data.bannerList.push(
+    { type: 2, obj_id: 80825, title: "外部广告" },
+    { type: 1, obj_id: "bad-id", title: "无效目标" },
+  );
+  const { source, requests } = plugin((url) =>
+    new URL(url).pathname === "/api/v1/comic2/index"
+      ? { status: 200, body: JSON.stringify(home) }
+      : undefined,
+  );
+  const result = await source.dailyRecommendation.load();
+  assert.equal(result.length, 10);
+  assert.deepEqual(
+    Array.from(result, (item) => item.bannerTitle),
+    Array.from({ length: 10 }, (_, index) => `宣传语 ${index}`),
+  );
+  assert.ok(
+    result.every(
+      (item) => item.title === fixture("detail").data.comicInfo.title,
+    ),
+  );
+  assert.equal(
+    requests.filter(
+      (request) => request.url.pathname === "/api/v1/comic2/comic/detail",
+    ).length,
+    1,
+  );
+  assert.equal(
+    requests.length,
+    2,
+    "recommendations need only home and comic metadata, without related comics",
+  );
+});
+
+test("banner image fallbacks keep promotional art out of comic metadata", async () => {
+  for (const [cover, imageUrl] of [
+    ["", "//images.zaimanhua.com/banner.jpg"],
+    ["//images.zaimanhua.com/comic.jpg", ""],
+  ]) {
+    const home = fixture("home");
+    home.data.data.bannerList = [
+      { type: 1, obj_id: 80825, title: " ", sub_title: "", cover: imageUrl },
+    ];
+    const detail = fixture("detail");
+    detail.data.comicInfo.cover = cover;
+    const { source } = plugin((url) => ({
+      status: 200,
+      body: JSON.stringify(
+        new URL(url).pathname === "/api/v1/comic2/index" ? home : detail,
+      ),
+    }));
+    const [banner] = await source.dailyRecommendation.load();
+    assert.equal(banner.title, detail.data.comicInfo.title);
+    assert.equal(banner.bannerTitle, "");
+    assert.equal(banner.cover, cover ? "https:" + cover : undefined);
+    assert.equal(banner.imageUrl, imageUrl ? "https:" + imageUrl : undefined);
+  }
+});
+
+test("empty banners skip details and invalid metadata errors propagate", async () => {
+  const home = fixture("home");
+  home.data.data.bannerList = [];
+  const empty = plugin(() => ({ status: 200, body: JSON.stringify(home) }));
+  assert.deepEqual(plain(await empty.source.dailyRecommendation.load()), []);
+  assert.equal(empty.requests.length, 1);
+  home.data.data.bannerList = [
+    { type: 1, obj_id: 80825, title: "宣传语", cover: "" },
+  ];
+  for (const mutate of [
+    (detail) => {
+      detail.data.comicInfo.id = 1;
+    },
+    (detail) => {
+      detail.data.comicInfo.title = " ";
+    },
+    (detail) => {
+      detail.data.comicInfo.cover = "";
+    },
+    (detail) => {
+      detail.errno = 1;
+      detail.errmsg = "资料请求失败";
+    },
+  ]) {
+    const detail = fixture("detail");
+    mutate(detail);
+    const { source } = plugin((url) => ({
+      status: 200,
+      body: JSON.stringify(
+        new URL(url).pathname === "/api/v1/comic2/index" ? home : detail,
+      ),
+    }));
+    await assert.rejects(source.dailyRecommendation.load(), /再漫画：/);
+  }
 });
 
 test("details expose authors in infoFields and keep chapter reading order by group", async () => {
@@ -828,6 +946,16 @@ test("details expose authors in infoFields and keep chapter reading order by gro
     action: "search",
   });
   assert.deepEqual(plain(info.tags.题材), ["爱情", "校园"]);
+  for (const label of ["题材", "读者"]) {
+    assert.deepEqual(
+      plain(info.infoFields.find((field) => field.label === label)),
+      {
+        label,
+        values: plain(info.tags[label]),
+        action: "search",
+      },
+    );
+  }
   const chapters = [...info.chapters];
   assert.deepEqual(plain(chapters[0]), ["170150", "连载 · 第01话"]);
   assert.deepEqual(plain(chapters[1]), ["170152", "连载 · 番外01"]);

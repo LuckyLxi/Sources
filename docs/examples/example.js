@@ -8,7 +8,7 @@ Hazuki.registerSource({
         comics: page === 1 ? [{id: 'demo', title: keyword || 'Example comic', cover}] : [], maxPage: 1,
     })},
     dailyRecommendation: {load: async () => [
-        {id: 'demo', title: 'Website daily pick', cover, imageUrl: 'https://example.com/banner.png', caption: '每日精选'},
+        {id: 'demo', title: 'Example comic', cover, imageUrl: 'https://example.com/banner.png', bannerTitle: 'Website daily pick', caption: '每日精选'},
     ]},
     comic: {
         loadInfo: async id => ({id, title: 'Example comic', cover, chapters: {'1':'Chapter 1'}, tags: {}, headerStats: [{text: {zh: '每周更新', en: 'Weekly updates'}}], infoFields: [{label: {zh: '状态', en: 'Status'}, values: '连载中'}], description: 'Hazuki Source API v1 example'}),

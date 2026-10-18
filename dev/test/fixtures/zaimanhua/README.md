@@ -1,7 +1,7 @@
 # 再漫画 public API fixtures
 
 Captured anonymously from `https://manhua.zaimanhua.com` on 2026-10-18.
-JSON was pretty-printed without changing response fields. No account, cookies,
+Unless noted below, JSON was pretty-printed without changing response fields. No account, cookies,
 authorization headers or personal credentials were used or captured.
 
 | File          | Request path and relevant query                                                                          |
@@ -9,6 +9,7 @@ authorization headers or personal credentials were used or captured.
 | search.json   | `/app/v1/search/index?keyword=猫&source=0&page=1&size=20`                                                |
 | search2.json  | same search, `page=2`                                                                                    |
 | home.json     | `/api/v1/comic2/index`                                                                                   |
+| banner-comics.json | `/api/v1/comic2/comic/detail?id=<obj_id>` for the six comics in `home.json`'s banner list; only `comicInfo.id/title/cover` retained, indexed by comic ID |
 | update.json   | `/api/v1/comic2/update_list?page=1&size=20`                                                              |
 | catalog.json  | `/api/v1/comic1/filter?sortType=0&page=1&size=20&status=0&audience=0&theme=0&cate=0&zone=0&firstLetter=` |
 | ranking.json  | `/api/v1/comic1/rank_list?page=1&size=20&duration=1&cate=1&tag=0&theme=0`                                |
@@ -26,6 +27,11 @@ The public JavaScript bundles identify these routes and the catalog/rank option
 values. Tests additionally construct malformed/error responses and chapter
 ordering edge cases from these snapshots; those cases are not claimed to be
 captured server responses. Tests run offline and do not fetch the image URLs.
+
+The banner metadata projection was captured anonymously on 2026-10-18. For
+example, comic 77926 is titled `缺憾之恋的主角们`, while its banner says
+`双向暗恋、全班都是cp粉`. Tests preserve the website's promotional title/art in
+`bannerTitle`/`imageUrl` and the target comic's real title/cover separately.
 
 Account config, captcha metadata, login success, user profiles, OAuth start URLs,
 and comment creation/like success responses used in `zaimanhua.test.cjs` are constructed

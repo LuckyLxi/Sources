@@ -12,6 +12,8 @@ interface SourceComic {
 interface SourceDailyRecommendationItem extends Omit<SourceComic, 'cover'> {
   cover?: string;
   imageUrl?: string;
+  /** Optional promotional title; falls back to the comic title when blank. */
+  bannerTitle?: string;
   /** Optional short overlay text: author, recommendation reason, section name, etc. */
   caption?: string;
 }
