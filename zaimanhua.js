@@ -7,6 +7,7 @@
  * Routes and field names were observed in the public desktop site's responses:
  *   /app/v1/search/index
  *   /app/v1/comic/sub/{list,checkIsSub,add,del}
+ *   /app/v1/readingRecord/{add,list}
  *   /api/v1/comic1/{filter,rank_list,comic/same_list}
  *   /api/v1/comic2/{index,update_list,comic/detail,chapter/detail}
  * Optional account flows use the site's own point captcha/SMS and browser OAuth
@@ -426,6 +427,111 @@ async function zaimanhuaReadingProgress(progress) {
 }
 
 /** @returns {Promise<string>} */
+async function zaimanhuaReadingSession() {
+  const token = await Hazuki.secrets.get("session");
+  if (!token)
+    throw Hazuki.error("AUTH_EXPIRED", "再漫画：请先登录再读取网站阅读进度");
+  return token;
+}
+
+/** The website displays record directly as an original, one-based image page.
+ * total_num is not mapped: its image-count semantics have not been verified.
+ * @param {unknown} value @param {string} comicId
+ * @returns {SourceCloudReadingProgress | null}
+ */
+function zaimanhuaParseReadingRecord(value, comicId) {
+  if (value === null) return null;
+  if (!value || typeof value !== "object" || Array.isArray(value))
+    throw new Error("再漫画：网站阅读进度格式异常");
+  const record = /** @type {ZaimanhuaData} */ (value);
+  const id = zaimanhuaText(record.biz_id);
+  const chapterId = zaimanhuaText(record.chapter_id);
+  const pageText = zaimanhuaText(record.record);
+  // The detail endpoint returns this explicit zero-valued placeholder when the
+  // website has no position. Missing/malformed fields must not imitate it.
+  if (chapterId === "0" && pageText === "0" && (id === "0" || id === comicId))
+    return null;
+  const page = Number(pageText);
+  if (
+    id !== comicId ||
+    !/^[1-9]\d*$/.test(chapterId) ||
+    !/^[1-9]\d*$/.test(pageText) ||
+    !Number.isSafeInteger(page)
+  )
+    throw new Error("再漫画：网站阅读进度无效或与漫画不匹配");
+  const seconds = Number(zaimanhuaText(record.viewing_time));
+  const updatedAtMs = seconds * 1000;
+  return {
+    chapterId,
+    page,
+    ...(seconds > 0 && Number.isSafeInteger(updatedAtMs)
+      ? { updatedAtMs }
+      : {}),
+  };
+}
+
+/** Always re-read the exact comic. Never restore from history, a local position,
+ * or a session cache, and never write state from this read-only host runtime.
+ * @param {string} comicId @returns {Promise<SourceCloudReadingProgress | null>}
+ */
+async function zaimanhuaLoadReadingProgress(comicId) {
+  comicId = zaimanhuaId(comicId);
+  const token = await zaimanhuaReadingSession();
+  const data = await zaimanhuaRequest(
+    "/api/v1/comic2/comic/detail",
+    { id: comicId },
+    { token },
+  );
+  if (!data.comicInfo || zaimanhuaText(data.comicInfo.id) !== comicId)
+    throw new Error("再漫画：漫画不存在或网站阅读进度数据异常");
+  return zaimanhuaParseReadingRecord(data.readingRecord, comicId);
+}
+
+/** @param {number} page @returns {Promise<{
+ * items: {comic: SourceComic, progress: SourceCloudReadingProgress}[]
+ * }>}
+ */
+async function zaimanhuaLoadReadingHistory(page) {
+  const token = await zaimanhuaReadingSession();
+  page = zaimanhuaPageNumber(page);
+  // The account center uses pageSize here, not the size used by subscriptions.
+  const data = await zaimanhuaRequest(
+    "/app/v1/readingRecord/list",
+    {
+      source: "mh",
+      page,
+      pageSize: zaimanhuaPageSize,
+    },
+    { token },
+  );
+  const records =
+    data.recordList === null ? [] : zaimanhuaList(data.recordList);
+  if (data.recordList !== null && records.length !== data.recordList.length)
+    throw new Error("再漫画：网站阅读历史列表格式异常");
+  /** @type {{comic: SourceComic, progress: SourceCloudReadingProgress}[]} */
+  const items = [];
+  for (const record of records) {
+    const id = zaimanhuaId(record.biz_id);
+    const progress = zaimanhuaParseReadingRecord(record, id);
+    const title = zaimanhuaText(record.title);
+    if (!progress || !title)
+      throw new Error("再漫画：网站阅读历史缺少漫画名称或有效阅读位置");
+    items.push({
+      comic: {
+        id,
+        title,
+        cover: zaimanhuaImageUrl(record.cover),
+        subTitle: zaimanhuaText(record.chapter_name),
+      },
+      progress,
+    });
+  }
+  // The published history UI does not provide a reliable total. Deliberately
+  // omit maxPage so the host imports every page until the website returns empty.
+  return { items };
+}
+
+/** @returns {Promise<string>} */
 async function zaimanhuaFavoriteSession() {
   const token = await Hazuki.secrets.get("session");
   if (!token)
@@ -721,7 +827,7 @@ async function zaimanhuaDetails(id) {
 Hazuki.registerSource({
   id: "zaimanhua",
   name: "再漫画",
-  version: "1.1.1",
+  version: "1.2.0",
   apiVersion: 1,
   presentation: {
     buttons: [
@@ -876,6 +982,8 @@ Hazuki.registerSource({
   comic: {
     loadInfo: zaimanhuaDetails,
     onReadingProgress: zaimanhuaReadingProgress,
+    loadReadingProgress: zaimanhuaLoadReadingProgress,
+    loadReadingHistory: zaimanhuaLoadReadingHistory,
     loadEp: async (comicId, chapterId) => {
       comicId = zaimanhuaId(comicId);
       chapterId = zaimanhuaId(chapterId);

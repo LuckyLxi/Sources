@@ -161,8 +161,10 @@ test("registers an API v1 source discoverable by the index generator", () => {
   const { buildIndex } = require("../scripts/update-plugin-index.cjs");
   const entry = buildIndex(ROOT).plugins.find((item) => item.id === source.id);
   assert.equal(entry.name, "再漫画");
-  assert.equal(entry.version, "1.1.1");
+  assert.equal(entry.version, "1.2.0");
   assert.equal(source.apiVersion, 1);
+  assert.equal(typeof source.comic.loadReadingProgress, "function");
+  assert.equal(typeof source.comic.loadReadingHistory, "function");
   assert.deepEqual(
     Array.from(source.account.loginMethods, (method) => method.id),
     ["password", "sms", "wechat", "qq", "weibo"],
@@ -1041,4 +1043,259 @@ test("logged-in details reflect subscription state without blocking public readi
   assert.equal(detail.isFavorite, undefined);
   assert.equal(detail.chapters.size, 29);
   assert.equal(failed.logs.length, 1);
+});
+
+// Constructed account records using the public detail response and the account
+// center's history renderer field names. No real account history is captured.
+function readingRecord(changes = {}) {
+  return {
+    biz_id: 80825,
+    chapter_id: 170150,
+    record: 3,
+    viewing_time: 1790607951,
+    total_num: 999,
+    title: "测试漫画",
+    cover: "//images.zaimanhua.com/test-cover.jpg",
+    chapter_name: "第01话",
+    ...changes,
+  };
+}
+
+function readingDetail(record) {
+  const response = fixture("detail");
+  response.data.readingRecord = record;
+  return { status: 200, body: JSON.stringify(response) };
+}
+
+test("website progress loads the exact comic and preserves original image page numbers", async () => {
+  const { source, requests, writes } = plugin(
+    () =>
+      readingDetail(
+        readingRecord({
+          chapter_id: "170152",
+          record: "7",
+          viewing_time: "1790607951",
+        }),
+      ),
+    { secrets: { session: "test-session" } },
+  );
+  const progress = await source.comic.loadReadingProgress("80825");
+  assert.deepEqual(plain(progress), {
+    chapterId: "170152",
+    page: 7,
+    updatedAtMs: 1790607951000,
+  });
+  assert.equal(
+    progress.totalPages,
+    undefined,
+    "unverified total_num must not clamp a position",
+  );
+  assert.equal(requests.length, 1);
+  assert.equal(requests[0].method, "GET");
+  assert.equal(requests[0].url.pathname, "/api/v1/comic2/comic/detail");
+  assert.equal(requests[0].url.searchParams.get("id"), "80825");
+  assert.equal(requests[0].headers.Authorization, "Bearer test-session");
+  assert.deepEqual(
+    writes,
+    [],
+    "a cloud-read runtime must not write persistent state",
+  );
+});
+
+test("website progress re-reads the server on every call and does not use old local positions", async () => {
+  let current = readingRecord({ record: 7 });
+  const { source, requests, writes } = plugin(() => readingDetail(current), {
+    secrets: { session: "test-session" },
+    storage: { readingProgress: { chapterId: "999", page: 99 } },
+  });
+  assert.equal((await source.comic.loadReadingProgress("80825")).page, 7);
+  current = readingRecord({ chapter_id: 170152, record: 2 });
+  assert.deepEqual(plain(await source.comic.loadReadingProgress("80825")), {
+    chapterId: "170152",
+    page: 2,
+    updatedAtMs: 1790607951000,
+  });
+  current = { biz_id: 0, chapter_id: 0, record: 0, viewing_time: 0 };
+  assert.equal(await source.comic.loadReadingProgress("80825"), null);
+  assert.equal(requests.length, 3);
+  assert.deepEqual(writes, []);
+});
+
+test("only an explicit missing website record returns null", async () => {
+  for (const record of [
+    null,
+    { biz_id: 0, chapter_id: 0, record: 0 },
+    { biz_id: 80825, chapter_id: "0", record: "0" },
+  ]) {
+    const { source } = plugin(() => readingDetail(record), {
+      secrets: { session: "test-session" },
+    });
+    assert.equal(await source.comic.loadReadingProgress("80825"), null);
+  }
+  for (const record of [
+    undefined,
+    {},
+    [],
+    "invalid",
+    readingRecord({ biz_id: 1 }),
+    readingRecord({ chapter_id: 0 }),
+    readingRecord({ chapter_id: "bad" }),
+    readingRecord({ record: 0 }),
+    readingRecord({ record: 1.5 }),
+    readingRecord({ record: "9007199254740992" }),
+  ]) {
+    const { source } = plugin(() => readingDetail(record), {
+      secrets: { session: "test-session" },
+    });
+    await assert.rejects(source.comic.loadReadingProgress("80825"), /阅读进度/);
+  }
+  const response = fixture("detail");
+  response.data.comicInfo.id = 1;
+  const mismatched = plugin(
+    () => ({ status: 200, body: JSON.stringify(response) }),
+    { secrets: { session: "test-session" } },
+  );
+  await assert.rejects(
+    mismatched.source.comic.loadReadingProgress("80825"),
+    /阅读进度/,
+  );
+});
+
+test("cloud history uses pageSize and continues past short pages until the server is empty", async () => {
+  const { source, requests, writes } = plugin(
+    (url) => {
+      const page = Number(new URL(url).searchParams.get("page"));
+      return {
+        status: 200,
+        body: JSON.stringify({
+          errno: 0,
+          data: {
+            recordList:
+              page === 1
+                ? [readingRecord()]
+                : page === 2
+                  ? [
+                      readingRecord({
+                        biz_id: 63911,
+                        title: "另一部漫画",
+                        chapter_id: 23,
+                        record: 8,
+                      }),
+                    ]
+                  : null,
+          },
+        }),
+      };
+    },
+    { secrets: { session: "test-session" } },
+  );
+  const imported = [];
+  for (let page = 1; ; page++) {
+    const result = await source.comic.loadReadingHistory(page);
+    assert.equal(result.maxPage, undefined);
+    if (!result.items.length) break;
+    imported.push(...result.items);
+  }
+  assert.deepEqual(plain(imported[0]), {
+    comic: {
+      id: "80825",
+      title: "测试漫画",
+      cover: "https://images.zaimanhua.com/test-cover.jpg",
+      subTitle: "第01话",
+    },
+    progress: { chapterId: "170150", page: 3, updatedAtMs: 1790607951000 },
+  });
+  assert.equal(imported[1].comic.id, "63911");
+  assert.equal(imported[1].progress.page, 8);
+  assert.equal(requests.length, 3);
+  for (const [index, request] of requests.entries()) {
+    assert.equal(request.method, "GET");
+    assert.equal(request.url.pathname, "/app/v1/readingRecord/list");
+    assert.equal(request.url.searchParams.get("source"), "mh");
+    assert.equal(request.url.searchParams.get("page"), String(index + 1));
+    assert.equal(request.url.searchParams.get("pageSize"), "20");
+    assert.equal(request.url.searchParams.has("size"), false);
+    assert.equal(request.headers.Authorization, "Bearer test-session");
+  }
+  assert.deepEqual(writes, []);
+});
+
+test("history accepts an empty list but rejects broken pages instead of silently truncating import", async () => {
+  for (const recordList of [[], null]) {
+    const { source } = plugin(
+      () => ({
+        status: 200,
+        body: JSON.stringify({ errno: 0, data: { recordList } }),
+      }),
+      { secrets: { session: "test-session" } },
+    );
+    assert.deepEqual(plain(await source.comic.loadReadingHistory(1)), {
+      items: [],
+    });
+  }
+  for (const recordList of [
+    undefined,
+    {},
+    [null],
+    ["invalid"],
+    [readingRecord({ title: "" })],
+    [readingRecord({ biz_id: 0 })],
+    [readingRecord({ chapter_id: 0, record: 0 })],
+    [readingRecord({ record: -1 })],
+  ]) {
+    const { source } = plugin(
+      () => ({
+        status: 200,
+        body: JSON.stringify({ errno: 0, data: { recordList } }),
+      }),
+      { secrets: { session: "test-session" } },
+    );
+    await assert.rejects(source.comic.loadReadingHistory(1));
+  }
+});
+
+test("cloud progress and history require login and propagate network/authentication failures", async () => {
+  const anonymous = plugin();
+  await assert.rejects(
+    anonymous.source.comic.loadReadingProgress("80825"),
+    (error) => error.code === "AUTH_EXPIRED",
+  );
+  await assert.rejects(
+    anonymous.source.comic.loadReadingHistory(1),
+    (error) => error.code === "AUTH_EXPIRED",
+  );
+  assert.equal(anonymous.requests.length, 0);
+  for (const response of [
+    { status: 200, body: '{"errno":99,"errmsg":"请先登录"}' },
+    { status: 503, body: "maintenance" },
+    { status: 200, body: "<html>blocked</html>" },
+  ]) {
+    const { source, writes } = plugin(() => response, {
+      secrets: { session: "test-session" },
+    });
+    await assert.rejects(source.comic.loadReadingProgress("80825"));
+    await assert.rejects(source.comic.loadReadingHistory(1));
+    assert.deepEqual(writes, []);
+  }
+});
+
+test("account changes and logout cannot reuse another account's cloud position", async () => {
+  const { source, secrets, requests } = plugin(
+    (_url, headers) =>
+      readingDetail(
+        readingRecord({
+          record: headers.Authorization === "Bearer first-session" ? 3 : 9,
+        }),
+      ),
+    { secrets: { session: "first-session" } },
+  );
+  assert.equal((await source.comic.loadReadingProgress("80825")).page, 3);
+  secrets.set("session", "second-session");
+  assert.equal((await source.comic.loadReadingProgress("80825")).page, 9);
+  secrets.delete("session");
+  await assert.rejects(
+    source.comic.loadReadingProgress("80825"),
+    (error) => error.code === "AUTH_EXPIRED",
+  );
+  assert.equal(requests.length, 2);
 });

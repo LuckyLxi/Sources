@@ -33,3 +33,12 @@ account center's public `788.d09de41f.js` declares `subList`/`total` and the
 `status`/`firstLetter`/`page`/`size` list parameters; its renderer uses each comic's
 `id`, `title`, `cover`, and update fields. Tests reuse public search items for the
 mock subscription pages. No real user's subscription library was captured.
+
+Cloud-reading success records in `zaimanhua.test.cjs` are constructed samples.
+The captured anonymous `detail.json` includes the real zero-valued
+`data.readingRecord` placeholder. The account center's public
+`624.2c99a1ba.js` declares the history request `source=mh`, `page`, `pageSize`,
+and response `data.recordList`; its renderer reads `biz_id`, `title`, `cover`,
+`chapter_id`, `chapter_name`, `record`, and `viewing_time`. It displays `record`
+as the page number. No real account history or successful authenticated reading
+response was captured. `total_num` is not assumed to be an image count.
