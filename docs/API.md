@@ -14,7 +14,9 @@
 
 `downloadUrl` 指向单个 UTF-8 JS 文件，可托管在 GitHub Releases 或其他 HTTPS 服务。发布时将示例中的 `example.com` 替换为实际下载地址。
 
-应用使用内置索引 `https://raw.githubusercontent.com/LuckyLxi/Sources/main/plugins.json`，支持在线安装和本地 JS 导入，不随安装包附带源脚本。每次启动下载一次索引，与已安装插件的 ID、版本比较，提示用户选择更新；停用插件也参与检查。进入或切换插件列表使用缓存，点击“刷新列表”重新下载；网络失败保留已安装记录和缓存。
+应用使用内置索引 `https://raw.githubusercontent.com/LuckyLxi/Sources/main/plugins.json`，支持在线安装和本地 JS 导入，不提供添加或移除仓库入口，也不随安装包附带源脚本；用户选择安装后才下载 JS。每次启动下载一次索引，保存为插件存储目录中的 `plugins.json`，与市场安装插件的 ID、版本比较，仅在发现较新版本时提示用户选择更新；停用的市场插件也参与检查。本地导入插件不参与在线更新检查，也不显示在线重新下载入口；同 ID 的市场插件不会覆盖本地导入插件，改变来源需先卸载。
+
+安装记录统一保存在插件存储目录的 `installed_plugins.json` 中，`plugins` 列表记录各插件的 `id`、`version` 及恢复安装状态所需的元数据。安装、更新、卸载使用临时文件写入后原子替换；失败保留已提交记录。旧版 `registry-*.json` 在首次加载时迁移，并保留原文件。进入或切换插件列表只读取共享索引，点击“刷新列表”重新下载；网络失败保留已安装记录和缓存，可切换线路后手动重试。
 
 高级设置中的“更新链接线路”支持 jsDelivr、GitHub 原始文件和 ghproxy，仅影响索引刷新与更新检查。插件下载始终使用索引中的原始 `downloadUrl`；切换线路不改变插件身份或已有数据。
 
@@ -232,6 +234,13 @@ presentation: {
 actions: {clearDeviceInfo: async () => { /* 插件自己的设备清理逻辑 */ }}
 ```
 
+原有四个插件的位置声明示例：
+
+- 禁漫天堂：个人资料签到、其他设置自动签到、详情 ID 复制、相关推荐；刷新线路通过 `presentation.actions` 放在线路页。提供 `comic.likeComic`，并用 `headerStats` 声明手机点赞项。
+- 拷贝漫画：高级设置设备重置、阅读设置及阅读器画质选择；插件自身设置页也保留设备重置操作，显式填写 `location: 'plugin'`。
+- 哔咔漫画：个人资料签到、其他设置自动签到、阅读设置及阅读器画质选择。提供 `comic.likeComic`，并用 `headerStats` 声明手机点赞项。
+- 热辣漫画：阅读设置及阅读器画质选择；自定义域名和画质配置位于插件设置页。
+
 `settings` 声明输入框、选择框和开关，字段见类型文件。设置页由应用渲染；插件不能创建 Flutter 控件。`presentation.actions` 提供 `{id,title,location?}` 列表，对应 `actions[id]()`；返回的文本由应用展示。设置改变时可提供 `settings[key].onChanged`。
 
 操作的 `location` 可选值：
@@ -245,7 +254,7 @@ actions: {clearDeviceInfo: async () => { /* 插件自己的设备清理逻辑 */
 | `advanced` | 设置 → 高级设置 |
 | `lines` | 首页侧边栏 → 线路 |
 
-跨页面操作需在注册时声明，显示所属插件名称，按安装和声明顺序排列在页面原有内容下方。入口来自所有已启用插件，禁用或卸载后移除；展示时无需初始化，点击时初始化所属插件并执行操作，不切换当前源。未知位置在安装时被拒绝。
+跨页面操作需在注册时声明，显示所属插件名称，按安装和声明顺序排列在页面原有内容下方。入口来自所有已启用插件，禁用或卸载后移除；展示时无需初始化，点击时初始化所属插件并执行操作，不切换当前源。不支持设置首页、关于、隐私、存储/缓存、云同步或显示页面；未知位置在安装时被拒绝。
 
 `settings[key].location` 仅支持 `plugin`（默认）和 `lines`，配置只在指定位置显示。线路页仅展示当前源的配置，复用设置保存与 `onChanged` 回调。
 
@@ -275,7 +284,7 @@ Hazuki.registerSource({
 
 ## 标签、排序与历史展示
 
-以下均为可选的 `presentation` 字段：
+宿主按能力声明处理展示与网络规则，不按源 ID 分支。以下均为可选的 `presentation` 字段：
 
 - `listTagGroups: string[]`：从详情 `tags` 中提取哪些分组作为列表、收藏和历史标签；分组名忽略大小写和首尾空格，标签去重。未声明时不从详情提取列表标签，已有记录标签仍保留。
 - `enrichMissingTags: boolean`：为缺少标签的列表条目调用所属插件的 `comic.loadInfo`；默认不补查。收藏和历史补查最多四个并发，切源或停用后忽略过期结果，失败不阻断列表。
@@ -286,10 +295,13 @@ Hazuki.registerSource({
 - 搜索排序的选中值和实际请求统一校验 `searchOrders`，无效值回退到有效的 `searchDefaultOrder` 或首个选项；未声明选项时使用空值，并隐藏排序入口。
 - 分类筛选按插件声明的选项分组顺序传递，`-全部` 表示值为空字符串、标签为“全部”。空值会保留位置；没有可用选项或选项加载失败时传空数组，由插件选择默认值，宿主不注入站点排序编码。
 - 已安装插件的运行时 `presentation` 按字段覆盖安装时声明，未覆盖的字段保留；搜索、聚合搜索、收藏和页面文案使用相同的合并结果。停用或卸载后，运行时声明不再生效。
-- 详情信息栏使用 `comic.loadInfo().infoFields`，不使用固定栏目开关。
+- 详情信息栏使用 `comic.loadInfo().infoFields`，不使用旧 `showUploader`、`showCategories`、`showChineseTeam` 或 `detailTagGroups`。
 
+哔咔声明标签和分类分组并启用补查；禁漫只声明详情的 `Tag` 分组用于保存记录，列表展示保持原样。站点协议适配由插件负责，例如禁漫图片还原、域名与 HTTPS 端口修正，以及拷贝设备信息和限流恢复；宿主 HTTP 层不判断漫画源或域名。
 
-宿主缓存最后一次安装成功的展示规则：`showComicId`、`showTags`、`showComicStatus`、`listTagGroups`。停用或卸载后，历史记录仍使用缓存展示，但不启用按钮、登录或联网补查。重新安装使用新声明，更新失败保留旧插件及缓存；无缓存的源使用通用展示，不改写原始记录。
+宿主缓存最后一次安装成功的展示规则：`showComicId`、`showTags`、`showComicStatus`、`listTagGroups`。停用或卸载后，历史记录仍使用缓存展示，但不启用按钮、登录或联网补查。重新安装使用新声明，更新失败保留旧插件及缓存；旧注册表从现有安装清单初始化缓存，无缓存的源使用通用展示，不改写原始记录。
+
+旧记录缺少源标识时的禁漫归属、下载 ID、旧 `jm.js` 文件和编辑状态兼容仍保留。
 
 ## 漫画 ID 与每日推荐能力
 
@@ -345,11 +357,19 @@ Hazuki.registerSource({
 
 插件管理入口位于“设置 → 实验室 → 漫画源插件”。启用开关控制插件是否可用，首页的漫画源切换入口用于选择当前使用的插件。
 
-本地与在线安装共用校验：在独立目录检查脚本身份与核心方法，成功后提交注册表，失败保留原脚本和记录。初始化失败报告运行错误并保留安装。不同来源的同 ID 插件需先卸载再导入；手动更新会提示覆盖本地编辑，并保留旧脚本备份。修改仓库源码不会自动更新已安装插件。
+本地与在线安装共用校验：在独立目录检查脚本身份与核心方法，成功后提交注册表，失败保留原脚本和记录。初始化失败报告运行错误并保留安装。不同来源的同 ID 插件需先卸载再导入；手动更新会提示覆盖本地编辑。修改仓库源码不会自动更新已安装插件，在线更新与本地编辑备份的关系见下节。
 
 启停和卸载更新可用源列表。当前源被移除后选择首个启用源；没有可用源时进入无源状态。卸载保留账号、设置、收藏、进度、历史和下载内容；重新安装相同 ID 后恢复关联。缺失插件时可查看本地记录和离线下载，联网请求需要重新安装插件。
 
-旧版升级时，原 JS 复制到插件存储目录的 `legacy_backup`，不覆盖原文件，也不自动执行或转换。沿用原 ID 可保持数据关联。插件来源及许可见脚本头部和 `dev/upstream/<插件 ID>/UPSTREAM.md`，发布时须遵守上游许可。
+旧版升级时，原 JS 复制到插件存储目录的 `legacy_backup`，不覆盖原文件，也不自动执行或转换。沿用原 ID 可保持数据关联。插件来源及许可见脚本头部和 `dev/upstream/<插件 ID>/UPSTREAM.md`；热辣为原创插件，来源说明保留在脚本头部及宿主快照中，发布时须遵守相应许可。
+
+### 本地编辑备份与恢复
+
+在应用内编辑并保存插件源码时，只保留上一次保存前的备份：A 保存为 B 时备份 A，B 保存为 C 时以 B 覆盖备份。备份和当前源码的引用随安装记录原子提交；保存失败时保留原源码和原备份，不影响正在运行的引擎。备份同时保留对应版本的元数据和编辑状态，重启后仍可恢复。
+
+高级设置的“恢复本地备份”适用于市场插件和本地导入插件，仅在有可用备份时显示。恢复成功后清除备份，恢复失败则保留；恢复到上一版已编辑源码时仍标记为本地已编辑，重启应用后生效。
+
+“重新下载插件”只对市场安装的插件显示，每次重新读取其仓库的 `plugins.json`，使用对应的 `downloadUrl` 下载并校验，即使版本相同也可以重新下载。在线重新下载或更新不创建或覆盖编辑备份。
 
 ## 验证
 
@@ -362,4 +382,72 @@ npm --prefix dev run format:check
 npm --prefix dev test
 ```
 
-类型检查使用 `hazuki-source.d.ts`；Node 测试使用离线样本和模拟宿主，无需真实账号。通过测试不代表当前网站可用或账号流程已实测。宿主 QuickJS 回归、快照更新及来源说明见 [开发文档](README.md)。
+类型检查使用 `hazuki-source.d.ts`；Node 测试使用离线样本和模拟宿主，无需真实账号。通过测试不代表当前网站可用或账号流程已实测。宿主 QuickJS 回归、快照更新及来源说明见 [开发文档](README.md#宿主回归与许可)，平台授权的实测范围与待验收项目见 [授权验证记录](plugin_authorization_verification.md)。
+
+## 登录交互、章节分组和阅读进度
+
+这些是 API v1 的可选扩展，需要包含这些能力的新版宿主。旧插件的账号密码登录、`chapters` 和阅读接口继续有效；插件不能自行创建 Flutter 控件。
+
+### 多步登录
+
+在 `account.loginMethods` 声明有序登录入口，每项为 `{id, title, input}`。`title` 支持语言映射；`input` 为 `credentials`（账号密码）、`account`（仅账号，例如手机号）或 `none`。未声明时使用原账号密码表单和旧运行时；声明必须为非空数组且 ID 唯一。
+
+宿主调用 `account.login(account, password, context)`，`context.method` 是所选 ID。非密码方式的 password 为空字符串，初始账号为空仅限 `none`。通过 `context.requestText({title, message?, initialValue?, obscure?, keyboardType?})` 等待非空字符串；数字键盘用 `keyboardType: 'number'`。用户输入不自动裁剪。
+
+通过 `context.requestClickCaptcha({title, message?, image, hintImage?, pointCount?})` 展示点选验证码。图片为 Uint8Array、字节数组或 Base64 图片 Data URL，由插件自行获取；界面不请求网站图片 URL。结果为 `{status:'submitted', points:[{x,y}, ...]}` 或 `{status:'refresh'}`。坐标按点击顺序返回，是从原图左上角开始的整数像素，图片缩放与留白由宿主换算。`pointCount` 应为 1–32 的整数；省略时允许 1–32 个点。支持撤销最后一点。
+
+刷新后由插件请求新图并再次等待交互，新图不继承旧点；网站校验失败时继续循环，无需再次收集账号。取消会中止整个登录，插件不应捕获取消后继续尝试登录。
+
+声明登录方式的登录在独立运行时执行，init、HTTP Cookie、私有 storage/settings 与 Secrets 写入均暂存。返回成功资料或正常完成后才提交；异常、取消、切源、停用和卸载丢弃本次写入，迟到的交互结果不会提交。成功后重建正常运行时，插件必须通过持久存储保留会话，不能只保存在临时 JS 变量里。每个插件同时只允许一个登录尝试。提交失败会尝试回滚，回滚自身失败会明确报告。
+
+后台自动重登不会展示交互；这类账号需要用户重新打开登录入口。短信、验证码请求和网站业务校验始终由插件负责。无初始输入的成功登录使用独立会话标记，不要求保存密码；旧账号记录继续兼容。
+
+### 浏览器授权（Android / Windows）
+
+在隔离的前台登录中调用 `context.requestBrowserAuthorization({title?, url, callbacks?, completion?, cookieScopes?, timeoutMs?})`。`url` 必须为不含用户名密码的 HTTPS URL；默认 `completion: "callback"` 时，`callbacks` 为非空数组，每项是 `{origin, path, requiredQueryKeys?}`。宿主对完整 origin（含端口）、精确路径以及必要的非空查询字段进行匹配，不支持域名或路径前缀通配。只接受本次主窗口及受控弹窗的顶层导航，iframe 不会完成授权。
+
+匹配时阻止继续加载回调地址，关闭全部授权窗口，返回 `{status:'completed', url}`；插件从 URL 提取凭据，校验网站账号及网站支持的 state，再保存会话并正常返回。宿主不解析网站字段，不把浏览器 Cookie 自动复制到 `Hazuki.cookies`。完整回调仅供插件在内存中处理，禁止记录 URL、令牌、Cookie 或认证头。
+
+默认 5 分钟超时，可设置整数 30000～600000 毫秒，超时返回 `{status:'timeout'}`；关闭、返回、切源、停用或卸载会取消整个登录尝试。完成后仍需通过现有暂存事务提交；验证失败、取消和提交失败不能留下新登录态。网络或浏览器失败以脱敏错误码结束，不提供含 URL 的原生错误内容。
+
+Windows 每次授权使用独立 WebView2 环境及目录；缺少运行时时提供安装入口。Android 每次使用独立 WebView Profile；系统 WebView 不支持 MULTI_PROFILE 时提示更新组件，原有账号密码功能照常使用。会话不复用，退出时清理，进程终止留下的数据在下次启动清理。外部浏览器及其它插件的 Cookie 不共享；外部 App 授权使用独立的 requestExternalAuthorization；Cookie 登录须显式声明 cookieScopes。插件没有任意网页脚本执行接口。
+
+通用示例见 [browser-authorization.js](examples/browser-authorization.js)。平台真实授权结果应分别验证，不能把普通桌面浏览器的成功视为 Android 或内嵌浏览器已通过；已有实测与限制见 [授权验证记录](plugin_authorization_verification.md)。
+
+### 章节分组
+
+`comic.loadInfo` 可返回 `chapterGroups: [{id, title, chapters:[{id,title}, ...]}, ...]`，也适用于 `new ComicDetails({...})`。有非空分组时它优先于旧 `chapters`；仅用分组时可以省略旧字段。分组和组内章节均按数组顺序使用，章节 ID 必须在整部漫画内唯一；非法结构、重复组 ID 或重复章节 ID 会报错。普通对象的数字键顺序无法用于表达任意阅读顺序，旧插件应使用 Map。
+
+详情和阅读器章节面板支持选组；阅读器默认当前章节所属组，上一章和下一章不跨组。下载全选作用于当前组，切组保留已选项，确认按整部漫画的源顺序提交。章节 ID 不添加组前缀；组内位置不能代替全局位置。新增下载元数据保存组信息，磁盘目录编号与阅读顺序分开管理；旧目录不因切组而改名，旧下载仍可读取。旧下载中缺失的分组不会从标题猜测恢复。
+
+### 实际阅读进度通知
+
+可选 `comic.onReadingProgress(progress)` 接收 `{comicId, chapterId, page, totalPages, visiblePages, reason}`。page 从 1 开始，totalPages 是原始图片总数；双页模式 page 取阅读顺序中的首张可见图片，visiblePages 是可见图片页码数组。条漫报告视口中实际可见图片的位置；导航目标、预加载和后台下载不触发通知。
+
+首次有效显示上报一次，随后每 5 秒最多一次并合并到最新位置；切章、退出和进入后台补交最后位置。reason 分别为 `initial`、`page`、`chapter`、`exit`、`background`。同插件串行调用，切章补交先于新章初始位置。仅在线阅读、已登录且声明回调时调用；离线阅读和未登录不会调用。失败不阻塞阅读，不自动登录，也不建立持久重试队列。
+
+插件自行将宿主页码转换为网站格式并发送请求。网站进度读取为独立可选能力，规则见下文；仅声明上报时仍沿用本地进度。示例见 Sources 仓库 `docs/examples/host-capabilities.js`。真实网站及账号成功流程仍需独立验证。
+
+### 网站阅读位置与历史
+
+可选 `comic.loadReadingProgress(comicId)` 返回 `{chapterId, page, totalPages?, updatedAtMs?}` 或 `null`；页码从 1 开始，按原始图片计数。声明后，在线阅读始终以网站为准，停止写入在线本地位置；仅声明上报不改变旧行为。离线下载继续保存、恢复本地位置。网站位置不写入 ReadingProgressEntries，也不进入 WebDAV 本地进度合并。
+
+`comic.loadReadingHistory(page)` 返回 `{items:[{comic, progress}], maxPage?}`，必须同时声明读取位置接口。分页从 1 开始，没有 maxPage 时空页终止。登录后后台导入，打开历史时刷新全量记录，与浏览记录按插件和漫画 ID 去重展示。缓存使用独立、按当前账号会话隔离的内存存储；换号、退出、切源或停用时清空，旧请求不能更新新会话。缓存仅用于历史展示，不用作恢复位置的备选。读取接口运行在独立的账号读取运行时，存储与 Cookie 写入不提交正常运行时；插件应只读取网站数据。换号时关闭该运行时的 HTTP 客户端。
+
+打开漫画及点击继续阅读均重新读取网站。未登录、读取失败或网站没有记录时，不恢复旧本地位置或缓存位置；可重新登录或重试，也可从所选章节第一页阅读。继续阅读按章节 ID 找到漫画范围的位置，再恢复原始图片页；显式点选章节从第一页开始。章节不存在时提示手动选择。图片和设置准备后只恢复一次，页码按实际图片数修正；双页定位到包含目标图片的阅读页，条漫定位目标图片。用户操作后不再自动恢复，恢复期间不会上报初始第一页。
+
+### 外部应用授权
+
+仅前台隔离登录可调用 `context.requestExternalAuthorization({title?, createUrl, allowedSchemes, androidPackage?, timeoutMs?})`。宿主先分配随机回调，SDK 在插件内调用 `await createUrl(callbackUrl)` 构造或向网站获取授权 URL，再通过平台 URI API 拉起；函数不会跨 JS 桥。仅允许本次声明的协议，拒绝文件、脚本、命令及 Android intent URL。Android 可指定包名，未安装时返回脱敏错误。返回 completed/timeout 与浏览器接口一致，默认 5 分钟，可配置 30 秒至 10 分钟；取消会结束整个登录事务。
+
+回调协议区分正式、调试及 profile，随机路径绑定当前进程、插件和登录尝试。Android 消费冷启动/onNewIntent 地址后清除 Intent 数据；无待处理会话时丢弃。Windows 安装器注册 HKCU 协议，便携/调试版本首次使用注册安装位置专属协议。回调进程在 Flutter 启动前把结果发送给当前用户专属命名管道后退出；普通启动仍可多窗口。卸载只移除命令仍属于当前安装的协议项。重复、过期、错误路径及取消后的回调不能完成登录。
+
+插件须自行验证授权码、令牌、账号和 provider state。宿主没有微信/QQ 专用 SDK；网站拒绝宿主回调或要求特定 AppID、签名、SDK 时，须另行验证兼容性。地址和结果仅在内存中传递，不写应用日志、命令诊断或重试队列。
+
+### 浏览器 Cookie 登录
+
+`completion: "manual"` 可省略 callbacks，显示“完成登录”。只有显式声明 `cookieScopes:[{url:"https://…",names:["session"]}]` 才读取本次隔离浏览器中匹配 URL 和精确名称的 Cookie。所需名称缺失时保持窗口打开，提示继续登录；完成后先导入当前登录事务的暂存 Cookie 层，再交由插件使用 Hazuki.http 校验账号。校验失败、取消或提交失败全部回滚。没有 cookieScopes 的旧回调模式不导入浏览器 Cookie；manual 返回的 url 为初始 HTTPS 地址，不代表网站已验证。
+
+Cookie 属性包括 `domain/path/expiresAt`（毫秒）、`secure/httpOnly/sameSite/hostOnly`。旧记录与旧 set 调用仍可读取；省略 hostOnly 时，无点前缀的域名按主机 Cookie，点前缀按域 Cookie 解释。HTTPS、域名和路径边界必须匹配，同名不同路径优先发送长路径且保留各项。Windows 读取本次 WebView2 环境；Android 需同时支持 MULTI_PROFILE 和 GET_COOKIE_INFO，使用 Profile 的 CookieManagerCompat 获取属性，不使用网页 JS 降级。系统浏览器及其它插件的 Cookie 不参与导入。
+
+通用示例见 [cloud-and-authorization.js](examples/cloud-and-authorization.js)。平台集成与真实网站结果见 [授权验证记录](plugin_authorization_verification.md)；示例不是任何生产网站的已验证实现。

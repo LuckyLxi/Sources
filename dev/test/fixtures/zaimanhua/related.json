@@ -1,0 +1,118 @@
+{
+  "errno": 0,
+  "errmsg": "",
+  "data": {
+    "data": {
+      "comicList": [
+        {
+          "id": 61023,
+          "name": "喜欢的女孩子，就像水蜜桃",
+          "authors": "I am haruru",
+          "types": "校园",
+          "status": "已完结",
+          "last_update_chapter_name": "全一话",
+          "last_update_chapter_id": 142468,
+          "last_updatetime": 0,
+          "cover": "https://images.zaimanhua.com/img/webpic/7/1713419698.jpg",
+          "comic_py": "xhdnhzjxsmt",
+          "isFee": false,
+          "hotNum": 0,
+          "authorTag": {
+            "id": 0,
+            "tagName": "",
+            "tagPy": ""
+          },
+          "authorTagList": null,
+          "copyright": 0
+        },
+        {
+          "id": 63287,
+          "name": "牵牛花之恋",
+          "authors": "土豆",
+          "types": "爱情/校园",
+          "status": "连载中",
+          "last_update_chapter_name": "全一话",
+          "last_update_chapter_id": 147396,
+          "last_updatetime": 0,
+          "cover": "https://images.zaimanhua.com/img/webpic/12/1713420363.jpg",
+          "comic_py": "qianniuhuazhilian",
+          "isFee": false,
+          "hotNum": 0,
+          "authorTag": {
+            "id": 0,
+            "tagName": "",
+            "tagPy": ""
+          },
+          "authorTagList": null,
+          "copyright": 0
+        },
+        {
+          "id": 61673,
+          "name": "月下终焉",
+          "authors": "光仔",
+          "types": "爱情/奇幻",
+          "status": "已完结",
+          "last_update_chapter_name": "全一话",
+          "last_update_chapter_id": 142470,
+          "last_updatetime": 0,
+          "cover": "https://images.zaimanhua.com/img/webpic/9/1713420038.jpg",
+          "comic_py": "yuexiazhongyan",
+          "isFee": false,
+          "hotNum": 0,
+          "authorTag": {
+            "id": 0,
+            "tagName": "",
+            "tagPy": ""
+          },
+          "authorTagList": null,
+          "copyright": 0
+        },
+        {
+          "id": 61516,
+          "name": "蚂蚁",
+          "authors": "张3儿",
+          "types": "亲情/奇幻",
+          "status": "已完结",
+          "last_update_chapter_name": "全1话",
+          "last_update_chapter_id": 148815,
+          "last_updatetime": 0,
+          "cover": "https://images.zaimanhua.com/img/webpic/3/1713410382.jpg",
+          "comic_py": "mayizse",
+          "isFee": false,
+          "hotNum": 0,
+          "authorTag": {
+            "id": 0,
+            "tagName": "",
+            "tagPy": ""
+          },
+          "authorTagList": null,
+          "copyright": 0
+        },
+        {
+          "id": 61554,
+          "name": "捍卫无限有限电视",
+          "authors": "花京体验",
+          "types": "科幻/悬疑",
+          "status": "已完结",
+          "last_update_chapter_name": "02",
+          "last_update_chapter_id": 138657,
+          "last_updatetime": 0,
+          "cover": "https://images.zaimanhua.com/img/webpic/6/1713419628.jpg",
+          "comic_py": "hanweiwuxianyouxiandianshi",
+          "isFee": false,
+          "hotNum": 0,
+          "authorTag": {
+            "id": 0,
+            "tagName": "",
+            "tagPy": ""
+          },
+          "authorTagList": null,
+          "copyright": 0
+        }
+      ],
+      "comicPy": "kongpatashichongzhewogelaide",
+      "id": 80825,
+      "title": "恐怕她是冲着我哥来的"
+    }
+  }
+}

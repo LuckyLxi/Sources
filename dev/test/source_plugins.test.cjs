@@ -80,10 +80,11 @@ function plugin(id, respond = () => ({ status: 200, data: {} }), initial = {}) {
   return { source, storage, settings, requests, delays, logs, writes, context };
 }
 
-test("published index matches plugin metadata and download paths", () => {
-  const index = JSON.parse(
-    fs.readFileSync(path.join(__dirname, "..", "..", "plugins.json"), "utf8"),
-  );
+test("generated index matches plugin metadata and download paths", () => {
+  // plugins.json is published by CI. Validate the generated result so adding a
+  // source does not require manually updating that workflow-owned artifact.
+  const { buildIndex } = require("../scripts/update-plugin-index.cjs");
+  const index = buildIndex(path.join(__dirname, "..", ".."));
   assert.equal(index.schemaVersion, 1);
   const filenames = fs
     .readdirSync(path.join(__dirname, "..", ".."))

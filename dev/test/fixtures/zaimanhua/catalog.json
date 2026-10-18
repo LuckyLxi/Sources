@@ -1,0 +1,429 @@
+{
+  "errno": 0,
+  "errmsg": "",
+  "data": {
+    "comicList": [
+      {
+        "id": 84516,
+        "name": "少年PMC·红区",
+        "authors": "L.M",
+        "types": "冒险,格斗,科幻",
+        "status": "连载中",
+        "last_update_chapter_name": "Act.07 袭击",
+        "last_update_chapter_id": 195657,
+        "last_updatetime": 0,
+        "cover": "https://images.zaimanhua.com/img/webpic/17/6669171766714825.jpg",
+        "comic_py": "shaonianpmchongqu",
+        "isFee": false,
+        "hotNum": 0,
+        "authorTag": {
+          "id": 0,
+          "tagName": "",
+          "tagPy": ""
+        },
+        "authorTagList": null,
+        "copyright": 0
+      },
+      {
+        "id": 86345,
+        "name": "某校中那不可思异",
+        "authors": "老草本草",
+        "types": "校园",
+        "status": "连载中",
+        "last_update_chapter_name": "第57话：是也不是",
+        "last_update_chapter_id": 194559,
+        "last_updatetime": 0,
+        "cover": "https://images.zaimanhua.com/img/webpic/2/11766621778144425.jpg",
+        "comic_py": "mouxiaozhongnabukesiyi",
+        "isFee": false,
+        "hotNum": 0,
+        "authorTag": {
+          "id": 0,
+          "tagName": "",
+          "tagPy": ""
+        },
+        "authorTagList": null,
+        "copyright": 0
+      },
+      {
+        "id": 87382,
+        "name": "喜欢说反话的乐梓仁同学",
+        "authors": "杂烩火锅",
+        "types": "校园,其他,搞笑,宅系",
+        "status": "连载中",
+        "last_update_chapter_name": "34.猫咪",
+        "last_update_chapter_id": 194894,
+        "last_updatetime": 0,
+        "cover": "https://images.zaimanhua.com/img/webpic/7/4400071788783574.jpg",
+        "comic_py": "xihuanshuofanhuadelerentongxue",
+        "isFee": false,
+        "hotNum": 0,
+        "authorTag": {
+          "id": 0,
+          "tagName": "",
+          "tagPy": ""
+        },
+        "authorTagList": null,
+        "copyright": 0
+      },
+      {
+        "id": 85463,
+        "name": "咱们非要把漫画书店干黄吗？！",
+        "authors": "孙烨&卢琪",
+        "types": "治愈,搞笑",
+        "status": "连载中",
+        "last_update_chapter_name": "#097",
+        "last_update_chapter_id": 192536,
+        "last_updatetime": 0,
+        "cover": "https://images.zaimanhua.com/img/webpic/0/10531601782192766.jpg",
+        "comic_py": "zanmenfeiyaobamanhuashudianganhuangma",
+        "isFee": false,
+        "hotNum": 0,
+        "authorTag": {
+          "id": 0,
+          "tagName": "",
+          "tagPy": ""
+        },
+        "authorTagList": null,
+        "copyright": 0
+      },
+      {
+        "id": 52785,
+        "name": "闪光的碎片",
+        "authors": "三十七",
+        "types": "亲情/治愈/搞笑",
+        "status": "连载中",
+        "last_update_chapter_name": "141那个部位",
+        "last_update_chapter_id": 194447,
+        "last_updatetime": 0,
+        "cover": "https://images.zaimanhua.com/img/webpic/3/1080211231590073854.jpg",
+        "comic_py": "shanguangdesuipian",
+        "isFee": false,
+        "hotNum": 0,
+        "authorTag": {
+          "id": 0,
+          "tagName": "",
+          "tagPy": ""
+        },
+        "authorTagList": null,
+        "copyright": 0
+      },
+      {
+        "id": 87931,
+        "name": "搜神",
+        "authors": "伍奇",
+        "types": "冒险,历史,奇幻",
+        "status": "连载中",
+        "last_update_chapter_name": "志怪单元之03",
+        "last_update_chapter_id": 195567,
+        "last_updatetime": 0,
+        "cover": "https://images.zaimanhua.com/img/webpic/16/13680161787358827.jpg",
+        "comic_py": "soushen1",
+        "isFee": false,
+        "hotNum": 0,
+        "authorTag": {
+          "id": 0,
+          "tagName": "",
+          "tagPy": ""
+        },
+        "authorTagList": null,
+        "copyright": 0
+      },
+      {
+        "id": 73129,
+        "name": "艾尔登法环剧情解析漫画",
+        "authors": "Docurro",
+        "types": "冒险,魔法,战争",
+        "status": "连载中",
+        "last_update_chapter_name": "66 米凯拉前往幽影地",
+        "last_update_chapter_id": 188411,
+        "last_updatetime": 0,
+        "cover": "https://images.zaimanhua.com/webpic/1/3bc79be9edff49b5b3e16478ecc5c14c.jpg",
+        "comic_py": "aierdengfahuanjuqingjieximanhua",
+        "isFee": false,
+        "hotNum": 0,
+        "authorTag": {
+          "id": 0,
+          "tagName": "",
+          "tagPy": ""
+        },
+        "authorTagList": null,
+        "copyright": 0
+      },
+      {
+        "id": 73949,
+        "name": "永生花与金丝雀",
+        "authors": "手制偶像",
+        "types": "ゆり",
+        "status": "连载中",
+        "last_update_chapter_name": "第08幕",
+        "last_update_chapter_id": 188404,
+        "last_updatetime": 0,
+        "cover": "https://images.zaimanhua.com/img/webpic/14/1024758741718954163.jpg",
+        "comic_py": "yongshenghuayujinsique",
+        "isFee": false,
+        "hotNum": 0,
+        "authorTag": {
+          "id": 0,
+          "tagName": "",
+          "tagPy": ""
+        },
+        "authorTagList": null,
+        "copyright": 0
+      },
+      {
+        "id": 88835,
+        "name": "狐狸变戏法：“加速主义者”的科技乌托邦，还是",
+        "authors": "祖菲",
+        "types": "科幻,搞笑",
+        "status": "连载中",
+        "last_update_chapter_name": "番外 前作",
+        "last_update_chapter_id": 194412,
+        "last_updatetime": 0,
+        "cover": "https://images.zaimanhua.com/img/webpic/13/8816131791770991.jpg",
+        "comic_py": "hulibianxifajiasuzhuyizhedekejiwutuobanghuanshi",
+        "isFee": false,
+        "hotNum": 0,
+        "authorTag": {
+          "id": 0,
+          "tagName": "",
+          "tagPy": ""
+        },
+        "authorTagList": null,
+        "copyright": 0
+      },
+      {
+        "id": 83175,
+        "name": "斗佛",
+        "authors": "画梦人",
+        "types": "格斗,神鬼",
+        "status": "连载中",
+        "last_update_chapter_name": "重置版第10回",
+        "last_update_chapter_id": 194409,
+        "last_updatetime": 0,
+        "cover": "https://images.zaimanhua.com/img/webpic/19/5943391758891265.jpg",
+        "comic_py": "doufo",
+        "isFee": false,
+        "hotNum": 0,
+        "authorTag": {
+          "id": 0,
+          "tagName": "",
+          "tagPy": ""
+        },
+        "authorTagList": null,
+        "copyright": 0
+      },
+      {
+        "id": 85006,
+        "name": "【安科】帽子女孩在边缘世界",
+        "authors": "ZOB",
+        "types": "冒险,科幻,AA",
+        "status": "连载中",
+        "last_update_chapter_name": "第195话",
+        "last_update_chapter_id": 195438,
+        "last_updatetime": 0,
+        "cover": "https://images.zaimanhua.com/img/webpic/6/1962861769405524.jpg",
+        "comic_py": "ankemaozinvhaizaibianyuanshijie",
+        "isFee": false,
+        "hotNum": 0,
+        "authorTag": {
+          "id": 0,
+          "tagName": "",
+          "tagPy": ""
+        },
+        "authorTagList": null,
+        "copyright": 0
+      },
+      {
+        "id": 57732,
+        "name": "雾都野犬-RETRIBUTION-",
+        "authors": "Luna子",
+        "types": "冒险/悬疑/战争",
+        "status": "连载中",
+        "last_update_chapter_name": "第18话 Monty Hall Problem",
+        "last_update_chapter_id": 194632,
+        "last_updatetime": 0,
+        "cover": "https://images.zaimanhua.com/img/webpic/15/1097142751678657835.jpg",
+        "comic_py": "wuduyequanretribution",
+        "isFee": false,
+        "hotNum": 0,
+        "authorTag": {
+          "id": 0,
+          "tagName": "",
+          "tagPy": ""
+        },
+        "authorTagList": null,
+        "copyright": 0
+      },
+      {
+        "id": 81486,
+        "name": "灵兽守护计划",
+        "authors": "绿豆虫毛毛",
+        "types": "魔法",
+        "status": "连载中",
+        "last_update_chapter_name": "02 灵兽工会",
+        "last_update_chapter_id": 194935,
+        "last_updatetime": 0,
+        "cover": "https://images.zaimanhua.com/img/webpic/0/2532001749192074.jpg",
+        "comic_py": "lingshoushouhujihua",
+        "isFee": false,
+        "hotNum": 0,
+        "authorTag": {
+          "id": 0,
+          "tagName": "",
+          "tagPy": ""
+        },
+        "authorTagList": null,
+        "copyright": 0
+      },
+      {
+        "id": 64645,
+        "name": "北地之龙",
+        "authors": "潇洒的转转笔",
+        "types": "冒险,魔法,奇幻",
+        "status": "连载中",
+        "last_update_chapter_name": "204",
+        "last_update_chapter_id": 193939,
+        "last_updatetime": 0,
+        "cover": "https://images.zaimanhua.com/img/webpic/8/1044131881659931905.jpg",
+        "comic_py": "beidizhilong",
+        "isFee": false,
+        "hotNum": 0,
+        "authorTag": {
+          "id": 0,
+          "tagName": "",
+          "tagPy": ""
+        },
+        "authorTagList": null,
+        "copyright": 0
+      },
+      {
+        "id": 19526,
+        "name": "大理寺日志",
+        "authors": "RC",
+        "types": "历史,职场,搞笑",
+        "status": "连载中",
+        "last_update_chapter_name": "第321话",
+        "last_update_chapter_id": 194624,
+        "last_updatetime": 0,
+        "cover": "https://images.zaimanhua.com/img/webpic/14/1002241141506407587.jpg",
+        "comic_py": "dalisirizhi",
+        "isFee": false,
+        "hotNum": 0,
+        "authorTag": {
+          "id": 0,
+          "tagName": "",
+          "tagPy": ""
+        },
+        "authorTagList": null,
+        "copyright": 0
+      },
+      {
+        "id": 86239,
+        "name": "混沌损友",
+        "authors": "绿蜥蜴X仔",
+        "types": "校园,搞笑,宅系",
+        "status": "连载中",
+        "last_update_chapter_name": "第4话 ",
+        "last_update_chapter_id": 187392,
+        "last_updatetime": 0,
+        "cover": "https://images.zaimanhua.com/img/webpic/9/4211891777438480.jpg",
+        "comic_py": "hunsunyou",
+        "isFee": false,
+        "hotNum": 0,
+        "authorTag": {
+          "id": 0,
+          "tagName": "",
+          "tagPy": ""
+        },
+        "authorTagList": null,
+        "copyright": 0
+      },
+      {
+        "id": 85205,
+        "name": "我和吸血家里蹲的同居生活",
+        "authors": "血樱",
+        "types": "爱情,校园,奇幻,搞笑",
+        "status": "连载中",
+        "last_update_chapter_name": "第016.5夜  第16夜之后的事",
+        "last_update_chapter_id": 193781,
+        "last_updatetime": 0,
+        "cover": "https://images.zaimanhua.com/img/webpic/1/8648611773073986.jpg",
+        "comic_py": "wohexixuejialidundetongjushenghuo2",
+        "isFee": false,
+        "hotNum": 0,
+        "authorTag": {
+          "id": 0,
+          "tagName": "",
+          "tagPy": ""
+        },
+        "authorTagList": null,
+        "copyright": 0
+      },
+      {
+        "id": 88646,
+        "name": "大格牛的日常",
+        "authors": "大格牛可太没用了",
+        "types": "搞笑,亲情",
+        "status": "连载中",
+        "last_update_chapter_name": "第1话 还有这等好事儿",
+        "last_update_chapter_id": 194591,
+        "last_updatetime": 0,
+        "cover": "https://images.zaimanhua.com/img/webpic/19/1790672206.jpg",
+        "comic_py": "dageniu的richang",
+        "isFee": false,
+        "hotNum": 0,
+        "authorTag": {
+          "id": 0,
+          "tagName": "",
+          "tagPy": ""
+        },
+        "authorTagList": null,
+        "copyright": 0
+      },
+      {
+        "id": 88074,
+        "name": "双生兽族",
+        "authors": "tsuki",
+        "types": "校园,奇幻",
+        "status": "连载中",
+        "last_update_chapter_name": "12 缺失的记忆",
+        "last_update_chapter_id": 187335,
+        "last_updatetime": 0,
+        "cover": "https://images.zaimanhua.com/img/webpic/17/2954371788102844.png",
+        "comic_py": "shuangshengshouzu",
+        "isFee": false,
+        "hotNum": 0,
+        "authorTag": {
+          "id": 0,
+          "tagName": "",
+          "tagPy": ""
+        },
+        "authorTagList": null,
+        "copyright": 0
+      },
+      {
+        "id": 73784,
+        "name": "室友变成了女孩但我们彼此都很冷静",
+        "authors": "酒鬼酱",
+        "types": "亲情/治愈/搞笑",
+        "status": "连载中",
+        "last_update_chapter_name": "156",
+        "last_update_chapter_id": 187334,
+        "last_updatetime": 0,
+        "cover": "https://images.zaimanhua.com/img/webpic/13/1077543531717230615.jpg",
+        "comic_py": "shiyoubianchengliaonvhaidanwomenbiciduhenlengjing",
+        "isFee": false,
+        "hotNum": 0,
+        "authorTag": {
+          "id": 0,
+          "tagName": "",
+          "tagPy": ""
+        },
+        "authorTagList": null,
+        "copyright": 0
+      }
+    ],
+    "totalNum": 22230
+  }
+}

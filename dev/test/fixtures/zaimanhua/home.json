@@ -1,0 +1,987 @@
+{
+  "errno": 0,
+  "errmsg": "",
+  "data": {
+    "data": {
+      "bannerList": [
+        {
+          "authors": "",
+          "cover": "https://images.zaimanhua.com/tuijian/1/503cfbc97ecf41bebcd455be78e18d47.jpg",
+          "obj_id": 74859,
+          "pinyin": "",
+          "status": "",
+          "sub_title": "常盘ギヨ",
+          "title": "74859小织田与明智君",
+          "type": 1,
+          "url": ""
+        },
+        {
+          "authors": "",
+          "cover": "https://images.zaimanhua.com/tuijian/6/b25fbe30805c46ee810c5f9a272bbd91.jpg",
+          "obj_id": 80825,
+          "pinyin": "",
+          "status": "",
+          "sub_title": "伊瀬まるの",
+          "title": "恐怕她是冲着我哥来的",
+          "type": 1,
+          "url": ""
+        },
+        {
+          "authors": "",
+          "cover": "https://images.zaimanhua.com/tuijian/2/57ce1e7e307241849704fc6478c870ad.jpg",
+          "obj_id": 88634,
+          "pinyin": "",
+          "status": "",
+          "sub_title": "滝浪酒利",
+          "title": "锅之精灵、异世界中华料理！",
+          "type": 1,
+          "url": ""
+        },
+        {
+          "authors": "",
+          "cover": "https://images.zaimanhua.com/tuijian/10/62caedb6f99046a89be7123e55d2c112.jpg",
+          "obj_id": 77926,
+          "pinyin": "",
+          "status": "",
+          "sub_title": "あわい輝咲",
+          "title": "双向暗恋、全班都是cp粉",
+          "type": 1,
+          "url": ""
+        },
+        {
+          "authors": "",
+          "cover": "https://images.zaimanhua.com/tuijian/9/f5aeddfdffa744dc8900e56b0cb75b9f.jpg",
+          "obj_id": 79320,
+          "pinyin": "",
+          "status": "",
+          "sub_title": "安田現象",
+          "title": "母胎单身技术宅、自己手搓女朋友",
+          "type": 1,
+          "url": ""
+        },
+        {
+          "authors": "",
+          "cover": "https://images.zaimanhua.com/tuijian/1/ef87d55adf7746c9a1341f679630ed75.jpg",
+          "obj_id": 79810,
+          "pinyin": "",
+          "status": "",
+          "sub_title": "橿原まどか",
+          "title": "新章突入、两人的羁绊被——！",
+          "type": 1,
+          "url": ""
+        }
+      ],
+      "monthRankList": [
+        {
+          "authorTag": null,
+          "cateTag": null,
+          "chapter_id": 0,
+          "chapter_name": "",
+          "comic_id": 80825,
+          "comic_py": "kongpatashichongzhewogelaide",
+          "cover": "https://images.zaimanhua.com/webpic/12/2bb5562431424acd9cfaf75b831e5a08.jpg",
+          "description": "男高中生·远野阳太，因多次被企图接近自己身为帅哥的大哥的女生们欺骗利用，他下定决心再也不相信任何女性。\n就在这时，班上突然出现了一位总是主动找他搭话的美少女·北条泉！？她的目标是我哥…？泉的真实想法令人在意——。\n疑神疑鬼的爱情喜剧就此开幕☆",
+          "last_update_chapter_id": 0,
+          "last_update_chapter_name": "番外13",
+          "last_updatetime": 1790607951,
+          "num": 33180,
+          "statusTag": null,
+          "themeTag": null,
+          "title": "恐怕她是冲着我哥来的"
+        },
+        {
+          "authorTag": null,
+          "cateTag": null,
+          "chapter_id": 0,
+          "chapter_name": "",
+          "comic_id": 77926,
+          "comic_py": "quehanzhiliandezhujuemen",
+          "cover": "https://images.zaimanhua.com/webpic/3/886326cfd7bf4faabb517bf60a399dec.jpg",
+          "description": "旁人都心知肚明\n\n只有当事人蒙在鼓里的\n\n双箭头！但是！单相思？\n\n跟着同学们一起磕CP",
+          "last_update_chapter_id": 0,
+          "last_update_chapter_name": "第24话",
+          "last_updatetime": 1790216513,
+          "num": 28265,
+          "statusTag": null,
+          "themeTag": null,
+          "title": "缺憾之恋的主角们"
+        },
+        {
+          "authorTag": null,
+          "cateTag": null,
+          "chapter_id": 0,
+          "chapter_name": "",
+          "comic_id": 84011,
+          "comic_py": "kuaizhushouburanwojiuyaoxihuanshangnilea",
+          "cover": "https://images.zaimanhua.com/webpic/18/dd27d0d3613c4effa52d3ce61bd3daba.jpg",
+          "description": "她到底是故意还是天然呆！？让人内心混乱不已，标题即是真实写照的恋爱喜剧！！\n冷静的男高中生松浦一直靠着伪装自己活到现在，虽然能轻易看透别人的本性，但不知为啥，最近却被现充团体里的双马尾美少女严木持续纠缠——！？\n面对她这不知是刻意还是无心、又略带几分“小心机”的一举一动，松浦的内心在咆哮：「快住手！不然我就要喜欢上你了啊！！！」",
+          "last_update_chapter_id": 0,
+          "last_update_chapter_name": "第68话",
+          "last_updatetime": 1791971726,
+          "num": 22730,
+          "statusTag": null,
+          "themeTag": null,
+          "title": "快住手！不然我就要喜欢上你了啊"
+        },
+        {
+          "authorTag": null,
+          "cateTag": null,
+          "chapter_id": 0,
+          "chapter_name": "",
+          "comic_id": 59627,
+          "comic_py": "tonghuabandenikaishiliaolianaimenggong",
+          "cover": "https://images.zaimanhua.com/webpic/11/guohaoiyizhengzinijiuhuihuilai0325.jpg",
+          "description": "和武老师突如其来的新作！女主角看起来好像白圣女塞西莉亚，但是比塞西莉亚好像更胆小？\n如果说白圣女和黑牧师的故事是蜂蜜牛奶糖，那么这个故事就是柠檬水果硬糖！\n总之敬请和我们一起关注两位主角的恋爱之路吧！",
+          "last_update_chapter_id": 0,
+          "last_update_chapter_name": "重要通知",
+          "last_updatetime": 1775183997,
+          "num": 19765,
+          "statusTag": null,
+          "themeTag": null,
+          "title": "童话般的你开始了恋爱猛攻"
+        },
+        {
+          "authorTag": null,
+          "cateTag": null,
+          "chapter_id": 0,
+          "chapter_name": "",
+          "comic_id": 73867,
+          "comic_py": "jzyyyj",
+          "cover": "https://images.zaimanhua.com/webpic/13/3981b02b5f6647f08ad29a535981d06a.jpg",
+          "description": "在上午6点58分开往舞原的走读电车上，有位不知名的女孩与我…还有乘客们在一起!?在两位高中生酝酿的酸甜氛围中，乘客们情绪时而低落时而高涨! !崭新的爱情喜剧! !",
+          "last_update_chapter_id": 0,
+          "last_update_chapter_name": "第52话",
+          "last_updatetime": 1791474923,
+          "num": 15650,
+          "statusTag": null,
+          "themeTag": null,
+          "title": "今朝摇曳依旧"
+        },
+        {
+          "authorTag": null,
+          "cateTag": null,
+          "chapter_id": 0,
+          "chapter_name": "",
+          "comic_id": 41672,
+          "comic_py": "shouerniangyangchengjihuajie",
+          "cover": "https://images.zaimanhua.com/webpic/11/shouerniangyangchengjihuajie.jpg",
+          "description": "全方位作者远山绘麻的最新萌作！治愈满点的露耳女孩们~像动物般的女孩子，兽人女孩小绀和她的同类朋友小昂、侑芽为了独当一面，在人类爸爸身边每天过着开心快乐的日子。不可思议又可爱的毛茸茸温馨故事。",
+          "last_update_chapter_id": 0,
+          "last_update_chapter_name": "第38话",
+          "last_updatetime": 1791454300,
+          "num": 13705,
+          "statusTag": null,
+          "themeTag": null,
+          "title": "兽耳娘养成计划"
+        },
+        {
+          "authorTag": null,
+          "cateTag": null,
+          "chapter_id": 0,
+          "chapter_name": "",
+          "comic_id": 65993,
+          "comic_py": "fangxuehoudeouxiangyouyigemimi",
+          "cover": "https://images.zaimanhua.com/webpic/4/ouxiangmimi23703.jpg",
+          "description": "《放学后的偶像有一个秘密》的故事，是从国民偶像——黑宫玲的同班同学一一昼野阳知道了她的秘密后展开的青春爱情喜剧。传说中的黑宫不仅容貌端正，头脑也很聪明，对偶像事业和学业都能完美完成的她，昼野抱有尊敬之情。而一切的故事，则要从在考试中不及格的昼野在补习教室遇到了意想不到的人物开始说起……",
+          "last_update_chapter_id": 0,
+          "last_update_chapter_name": "第01卷",
+          "last_updatetime": 1791950154,
+          "num": 12280,
+          "statusTag": null,
+          "themeTag": null,
+          "title": "放学后的偶像有一个秘密"
+        },
+        {
+          "authorTag": null,
+          "cateTag": null,
+          "chapter_id": 0,
+          "chapter_name": "",
+          "comic_id": 69792,
+          "comic_py": "yinghanluoli",
+          "cover": "https://images.zaimanhua.com/webpic/4/yinghanluoli_14_10_2023.jpg",
+          "description": "连黑社会都畏惧的孤傲杀手──Ｊ，与无论在家或学校都无归属的孤独少女──惠。\n两人竟灵魂对调了!?这意想不到的发展，两人将带来诙谐有趣的杀手故事！",
+          "last_update_chapter_id": 0,
+          "last_update_chapter_name": "第41话",
+          "last_updatetime": 1790962497,
+          "num": 10040,
+          "statusTag": null,
+          "themeTag": null,
+          "title": "硬汉⇔萝莉"
+        },
+        {
+          "authorTag": null,
+          "cateTag": null,
+          "chapter_id": 0,
+          "chapter_name": "",
+          "comic_id": 65391,
+          "comic_py": "liulilonglong",
+          "cover": "https://images.zaimanhua.com/webpic/16/9c65be22d49f4281ba5120b259d8f2e5.jpg",
+          "description": "平凡的早晨，并不平凡——！！这对角到底是怎么回事？！",
+          "last_update_chapter_id": 0,
+          "last_update_chapter_name": "第51话",
+          "last_updatetime": 1788716764,
+          "num": 9845,
+          "statusTag": null,
+          "themeTag": null,
+          "title": "琉璃龙龙"
+        },
+        {
+          "authorTag": null,
+          "cateTag": null,
+          "chapter_id": 0,
+          "chapter_name": "",
+          "comic_id": 45216,
+          "comic_py": "maoyulong",
+          "cover": "https://images.zaimanhua.com/webpic/2/maolong2021.jpg",
+          "description": "一只被猫咪抚养长大的龙，如何成为猫控呢，甚至成为一只猫龙~",
+          "last_update_chapter_id": 0,
+          "last_update_chapter_name": "第二季制作决定",
+          "last_updatetime": 1789827049,
+          "num": 9843,
+          "statusTag": null,
+          "themeTag": null,
+          "title": "猫与龙"
+        }
+      ],
+      "recList": [
+        {
+          "authors": "",
+          "cover": "https://images.zaimanhua.com/webpic/5/mmrc20201224.jpg",
+          "obj_id": 16210,
+          "pinyin": "",
+          "status": "",
+          "sub_title": "たらばがに",
+          "title": "猫咪日常",
+          "type": 1,
+          "url": ""
+        },
+        {
+          "authors": "",
+          "cover": "https://images.zaimanhua.com/webpic/18/tuzimushechuke0812.jpg",
+          "obj_id": 47974,
+          "pinyin": "",
+          "status": "",
+          "sub_title": "藤沢カミヤ",
+          "title": "兔子目社畜科",
+          "type": 1,
+          "url": ""
+        },
+        {
+          "authors": "",
+          "cover": "https://images.zaimanhua.com/webpic/14/niao20210804.jpg",
+          "obj_id": 48958,
+          "pinyin": "",
+          "status": "",
+          "sub_title": "ノ ブヨツ侍",
+          "title": "鸟娘咖啡",
+          "type": 1,
+          "url": ""
+        },
+        {
+          "authors": "",
+          "cover": "https://images.zaimanhua.com/webpic/15/gaofenshaonvV2.jpg",
+          "obj_id": 9320,
+          "pinyin": "",
+          "status": "",
+          "sub_title": "押切蓮介",
+          "title": "高分少女",
+          "type": 1,
+          "url": ""
+        },
+        {
+          "authors": "",
+          "cover": "https://images.zaimanhua.com/webpic/18/jm0408l.jpg",
+          "obj_id": 9401,
+          "pinyin": "",
+          "status": "",
+          "sub_title": "石黑正数",
+          "title": "我家的街猫",
+          "type": 1,
+          "url": ""
+        },
+        {
+          "authors": "",
+          "cover": "https://images.zaimanhua.com/webpic/13/200202clsn.jpg",
+          "obj_id": 39472,
+          "pinyin": "",
+          "status": "",
+          "sub_title": "五十岚正邦",
+          "title": "川柳少女",
+          "type": 1,
+          "url": ""
+        }
+      ],
+      "updateList": [
+        {
+          "authorTag": {
+            "id": 0,
+            "tagName": "",
+            "tagPy": ""
+          },
+          "authorTagList": [
+            {
+              "id": 27387,
+              "tagName": "泥ノ田犬彦",
+              "tagPy": "ninotianquanyan"
+            }
+          ],
+          "authors": "泥ノ田犬彦",
+          "comic_py": "weileyunizaiyuzhouxingzou",
+          "copyright": 0,
+          "cover": "https://images.zaimanhua.com/webpic/17/weilenizaiyuzhouxingzou20231112.jpg",
+          "hotNum": 0,
+          "id": 72246,
+          "isFee": false,
+          "last_update_chapter_id": 195868,
+          "last_update_chapter_name": "第29话",
+          "last_updatetime": 1792133922,
+          "name": "为了与你在宇宙行走",
+          "status": "连载中",
+          "types": "校园"
+        },
+        {
+          "authorTag": {
+            "id": 0,
+            "tagName": "",
+            "tagPy": ""
+          },
+          "authorTagList": [
+            {
+              "id": 23610,
+              "tagName": "田村结衣",
+              "tagPy": "tiancunjieyi"
+            }
+          ],
+          "authors": "田村结衣",
+          "comic_py": "shiyetongxueguancharijilz",
+          "copyright": 0,
+          "cover": "https://images.zaimanhua.com/webpic/18/25119b71bb7b467ba9420ecec58c6f86.jpg",
+          "hotNum": 0,
+          "id": 61974,
+          "isFee": false,
+          "last_update_chapter_id": 188607,
+          "last_update_chapter_name": "第106话",
+          "last_updatetime": 1792133185,
+          "name": "矢野同学观察日记",
+          "status": "连载中",
+          "types": "爱情,校园"
+        },
+        {
+          "authorTag": {
+            "id": 0,
+            "tagName": "",
+            "tagPy": ""
+          },
+          "authorTagList": [
+            {
+              "id": 17537,
+              "tagName": "マシタユカ",
+              "tagPy": "maxiyoutaka"
+            }
+          ],
+          "authors": "マシタユカ",
+          "comic_py": "jizaishenghuo",
+          "copyright": 0,
+          "cover": "https://images.zaimanhua.com/webpic/19/jzsh803.jpg",
+          "hotNum": 0,
+          "id": 49488,
+          "isFee": false,
+          "last_update_chapter_id": 192635,
+          "last_update_chapter_name": "第17话",
+          "last_updatetime": 1792046103,
+          "name": "鸡仔生活",
+          "status": "已完结",
+          "types": "搞笑,日常"
+        },
+        {
+          "authorTag": {
+            "id": 0,
+            "tagName": "",
+            "tagPy": ""
+          },
+          "authorTagList": [
+            {
+              "id": 36625,
+              "tagName": "つぶ餡",
+              "tagPy": "tsubuxian"
+            },
+            {
+              "id": 36626,
+              "tagName": "なめくぢら",
+              "tagPy": "namekudira"
+            }
+          ],
+          "authors": "つぶ餡/なめくぢら",
+          "comic_py": "yishijiedechangshizhennana",
+          "copyright": 0,
+          "cover": "https://images.zaimanhua.com/webpic/13/c53abb74d65d4078aeef73ddc85d2a83.jpg",
+          "hotNum": 0,
+          "id": 86317,
+          "isFee": false,
+          "last_update_chapter_id": 194975,
+          "last_update_chapter_name": "第13话",
+          "last_updatetime": 1792028790,
+          "name": "异世界的常识真难啊",
+          "status": "连载中",
+          "types": "欢乐向,奇幻,轻小说,日常"
+        },
+        {
+          "authorTag": {
+            "id": 0,
+            "tagName": "",
+            "tagPy": ""
+          },
+          "authorTagList": [
+            {
+              "id": 32013,
+              "tagName": "イマソ刈り",
+              "tagPy": "imasogari"
+            }
+          ],
+          "authors": "イマソ刈り",
+          "comic_py": "imasogaridebkmxl",
+          "copyright": 0,
+          "cover": "https://images.zaimanhua.com/webpic/4/4cb4db38f57d4db0ad2627b81404e967.jpg",
+          "hotNum": 0,
+          "id": 80808,
+          "isFee": false,
+          "last_update_chapter_id": 192602,
+          "last_update_chapter_name": "推图360",
+          "last_updatetime": 1791978485,
+          "name": "イマソ刈り的宝可梦系列",
+          "status": "连载中",
+          "types": "搞笑"
+        },
+        {
+          "authorTag": {
+            "id": 0,
+            "tagName": "",
+            "tagPy": ""
+          },
+          "authorTagList": [
+            {
+              "id": 21854,
+              "tagName": "もりぐちあきら",
+              "tagPy": "MoriguchiAkira"
+            }
+          ],
+          "authors": "もりぐちあきら",
+          "comic_py": "kuaizhushouburanwojiuyaoxihuanshangnilea",
+          "copyright": 0,
+          "cover": "https://images.zaimanhua.com/webpic/18/dd27d0d3613c4effa52d3ce61bd3daba.jpg",
+          "hotNum": 0,
+          "id": 84011,
+          "isFee": false,
+          "last_update_chapter_id": 195642,
+          "last_update_chapter_name": "第68话",
+          "last_updatetime": 1791971726,
+          "name": "快住手！不然我就要喜欢上你了啊",
+          "status": "连载中",
+          "types": "爱情,校园"
+        },
+        {
+          "authorTag": {
+            "id": 0,
+            "tagName": "",
+            "tagPy": ""
+          },
+          "authorTagList": [
+            {
+              "id": 25610,
+              "tagName": "あまねかしこ",
+              "tagPy": "amanekaxiko"
+            }
+          ],
+          "authors": "あまねかしこ",
+          "comic_py": "fangxuehoudeouxiangyouyigemimi",
+          "copyright": 0,
+          "cover": "https://images.zaimanhua.com/webpic/4/ouxiangmimi23703.jpg",
+          "hotNum": 0,
+          "id": 65993,
+          "isFee": false,
+          "last_update_chapter_id": 192592,
+          "last_update_chapter_name": "第01卷",
+          "last_updatetime": 1791950154,
+          "name": "放学后的偶像有一个秘密",
+          "status": "连载中",
+          "types": "爱情,校园"
+        },
+        {
+          "authorTag": {
+            "id": 0,
+            "tagName": "",
+            "tagPy": ""
+          },
+          "authorTagList": [
+            {
+              "id": 37475,
+              "tagName": "深渊人",
+              "tagPy": "shenyuanren"
+            }
+          ],
+          "authors": "深渊人",
+          "comic_py": "biaotiyouyongma",
+          "copyright": 0,
+          "cover": "https://images.zaimanhua.com/webpic/17/d6ac060b14804ad7b601bd70840de038.jpg",
+          "hotNum": 0,
+          "id": 87652,
+          "isFee": false,
+          "last_update_chapter_id": 194877,
+          "last_update_chapter_name": "第30话",
+          "last_updatetime": 1791876750,
+          "name": "标题，有用吗？",
+          "status": "连载中",
+          "types": "科幻"
+        },
+        {
+          "authorTag": {
+            "id": 0,
+            "tagName": "",
+            "tagPy": ""
+          },
+          "authorTagList": [
+            {
+              "id": 3415,
+              "tagName": "野々上大二郎",
+              "tagPy": "nnshangdaerlang"
+            }
+          ],
+          "authors": "野々上大二郎",
+          "comic_py": "yuniaoyugutiandefeirichangqingchuntan",
+          "copyright": 0,
+          "cover": "https://images.zaimanhua.com/webpic/18/d06efb3cefb94cbc91249ba9844e648e.jpg",
+          "hotNum": 0,
+          "id": 84374,
+          "isFee": false,
+          "last_update_chapter_id": 188269,
+          "last_update_chapter_name": "第22话",
+          "last_updatetime": 1791638825,
+          "name": "羽鸟与古田的非日常青春谭",
+          "status": "连载中",
+          "types": "爱情,校园,奇幻"
+        },
+        {
+          "authorTag": {
+            "id": 0,
+            "tagName": "",
+            "tagPy": ""
+          },
+          "authorTagList": [
+            {
+              "id": 24839,
+              "tagName": "濱田賢治",
+              "tagPy": "bintianxianzhi"
+            }
+          ],
+          "authors": "濱田賢治",
+          "comic_py": "wojiapengtaibianchenglerenleizhejianshi",
+          "copyright": 0,
+          "cover": "https://images.zaimanhua.com/webpic/19/dd9be4ccc75546f2868603d10e9c10aa.jpg",
+          "hotNum": 0,
+          "id": 71297,
+          "isFee": false,
+          "last_update_chapter_id": 194728,
+          "last_update_chapter_name": "休刊番外4",
+          "last_updatetime": 1791630548,
+          "name": "我家碰太变成了人类这件事。",
+          "status": "连载中",
+          "types": "欢乐向"
+        },
+        {
+          "authorTag": {
+            "id": 0,
+            "tagName": "",
+            "tagPy": ""
+          },
+          "authorTagList": [
+            {
+              "id": 17696,
+              "tagName": "二阶堂幸",
+              "tagPy": "erjietangxing"
+            }
+          ],
+          "authors": "二阶堂幸",
+          "comic_py": "xiehouyuzhonhao",
+          "copyright": 0,
+          "cover": "https://images.zaimanhua.com/webpic/4/xiehouyuzhonhao23703.jpg",
+          "hotNum": 0,
+          "id": 56097,
+          "isFee": false,
+          "last_update_chapter_id": 194716,
+          "last_update_chapter_name": "第157话",
+          "last_updatetime": 1791615471,
+          "name": "邂逅雨中貉",
+          "status": "连载中",
+          "types": "欢乐向,治愈"
+        },
+        {
+          "authorTag": {
+            "id": 0,
+            "tagName": "",
+            "tagPy": ""
+          },
+          "authorTagList": [
+            {
+              "id": 5545,
+              "tagName": "增田英二",
+              "tagPy": "zengtianyinger"
+            }
+          ],
+          "authors": "增田英二",
+          "comic_py": "jzyyyj",
+          "copyright": 0,
+          "cover": "https://images.zaimanhua.com/webpic/13/3981b02b5f6647f08ad29a535981d06a.jpg",
+          "hotNum": 0,
+          "id": 73867,
+          "isFee": false,
+          "last_update_chapter_id": 194673,
+          "last_update_chapter_name": "第52话",
+          "last_updatetime": 1791474923,
+          "name": "今朝摇曳依旧",
+          "status": "连载中",
+          "types": "欢乐向,爱情,颜艺"
+        },
+        {
+          "authorTag": {
+            "id": 0,
+            "tagName": "",
+            "tagPy": ""
+          },
+          "authorTagList": [
+            {
+              "id": 19392,
+              "tagName": "はれやまはれぞう",
+              "tagPy": "hareyamaharezou"
+            }
+          ],
+          "authors": "はれやまはれぞう",
+          "comic_py": "langzaijundibuguozaochuantongxue",
+          "copyright": 0,
+          "cover": "https://images.zaimanhua.com/webpic/5/200329lzjdbgzctx.jpg",
+          "hotNum": 0,
+          "id": 53314,
+          "isFee": false,
+          "last_update_chapter_id": 188126,
+          "last_update_chapter_name": "第02卷",
+          "last_updatetime": 1791454930,
+          "name": "狼仔君敌不过早川同学",
+          "status": "已完结",
+          "types": "欢乐向,校园,奇幻"
+        },
+        {
+          "authorTag": {
+            "id": 0,
+            "tagName": "",
+            "tagPy": ""
+          },
+          "authorTagList": [
+            {
+              "id": 20550,
+              "tagName": "遠山えま",
+              "tagPy": "yuanshanaima"
+            }
+          ],
+          "authors": "遠山えま",
+          "comic_py": "shouerniangyangchengjihuajie",
+          "copyright": 0,
+          "cover": "https://images.zaimanhua.com/webpic/11/shouerniangyangchengjihuajie.jpg",
+          "hotNum": 0,
+          "id": 41672,
+          "isFee": false,
+          "last_update_chapter_id": 194648,
+          "last_update_chapter_name": "第38话",
+          "last_updatetime": 1791454300,
+          "name": "兽耳娘养成计划",
+          "status": "连载中",
+          "types": "亲情,萌系,治愈"
+        },
+        {
+          "authorTag": {
+            "id": 0,
+            "tagName": "",
+            "tagPy": ""
+          },
+          "authorTagList": [
+            {
+              "id": 7084,
+              "tagName": "金田阳介",
+              "tagPy": "jintianyangjie"
+            }
+          ],
+          "authors": "金田阳介",
+          "comic_py": "heimaohemonvdeketang",
+          "copyright": 0,
+          "cover": "https://images.zaimanhua.com/webpic/0/hadmsdjsx2022622.jpg",
+          "hotNum": 0,
+          "id": 64175,
+          "isFee": false,
+          "last_update_chapter_id": 194145,
+          "last_update_chapter_name": "第122话",
+          "last_updatetime": 1791302759,
+          "name": "黑猫和魔女的教室",
+          "status": "连载中",
+          "types": "魔法,校园"
+        },
+        {
+          "authorTag": {
+            "id": 0,
+            "tagName": "",
+            "tagPy": ""
+          },
+          "authorTagList": [
+            {
+              "id": 28507,
+              "tagName": "有象利路",
+              "tagPy": "youxianglilu"
+            },
+            {
+              "id": 18943,
+              "tagName": "しーめ",
+              "tagPy": "siyia"
+            }
+          ],
+          "authors": "有象利路/しーめ",
+          "comic_py": "hzzsddhhshct",
+          "copyright": 0,
+          "cover": "https://images.zaimanhua.com/webpic/2/c915a1f30eee4c75b8ce8d524dc07ea0.png",
+          "hotNum": 0,
+          "id": 77616,
+          "isFee": false,
+          "last_update_chapter_id": 194854,
+          "last_update_chapter_name": "动画化",
+          "last_updatetime": 1791042132,
+          "name": "和组织宿敌的婚后生活超甜",
+          "status": "连载中",
+          "types": "欢乐向,爱情,轻小说"
+        },
+        {
+          "authorTag": {
+            "id": 0,
+            "tagName": "",
+            "tagPy": ""
+          },
+          "authorTagList": [
+            {
+              "id": 11356,
+              "tagName": "あみだむく",
+              "tagPy": "amidamuku"
+            }
+          ],
+          "authors": "あみだむく",
+          "comic_py": "fanzhao",
+          "copyright": 0,
+          "cover": "https://images.zaimanhua.com/webpic/11/2451137287c74a0e9796b286c676ea0c.jpg",
+          "hotNum": 0,
+          "id": 29124,
+          "isFee": false,
+          "last_update_chapter_id": 187537,
+          "last_update_chapter_name": "第205话",
+          "last_updatetime": 1791040637,
+          "name": "饭沼。",
+          "status": "连载中",
+          "types": "美食"
+        },
+        {
+          "authorTag": {
+            "id": 0,
+            "tagName": "",
+            "tagPy": ""
+          },
+          "authorTagList": [
+            {
+              "id": 4077,
+              "tagName": "大武政夫",
+              "tagPy": "dawuzhengfu"
+            }
+          ],
+          "authors": "大武政夫",
+          "comic_py": "yinghanluoli",
+          "copyright": 0,
+          "cover": "https://images.zaimanhua.com/webpic/4/yinghanluoli_14_10_2023.jpg",
+          "hotNum": 0,
+          "id": 69792,
+          "isFee": false,
+          "last_update_chapter_id": 193857,
+          "last_update_chapter_name": "第41话",
+          "last_updatetime": 1790962497,
+          "name": "硬汉⇔萝莉",
+          "status": "连载中",
+          "types": "搞笑"
+        }
+      ],
+      "weekRankList": [
+        {
+          "authorTag": null,
+          "cateTag": null,
+          "chapter_id": 0,
+          "chapter_name": "",
+          "comic_id": 80825,
+          "comic_py": "kongpatashichongzhewogelaide",
+          "cover": "https://images.zaimanhua.com/webpic/12/2bb5562431424acd9cfaf75b831e5a08.jpg",
+          "description": "男高中生·远野阳太，因多次被企图接近自己身为帅哥的大哥的女生们欺骗利用，他下定决心再也不相信任何女性。\n就在这时，班上突然出现了一位总是主动找他搭话的美少女·北条泉！？她的目标是我哥…？泉的真实想法令人在意——。\n疑神疑鬼的爱情喜剧就此开幕☆",
+          "last_update_chapter_id": 0,
+          "last_update_chapter_name": "番外13",
+          "last_updatetime": 1790607951,
+          "num": 11800,
+          "statusTag": null,
+          "themeTag": null,
+          "title": "恐怕她是冲着我哥来的"
+        },
+        {
+          "authorTag": null,
+          "cateTag": null,
+          "chapter_id": 0,
+          "chapter_name": "",
+          "comic_id": 84011,
+          "comic_py": "kuaizhushouburanwojiuyaoxihuanshangnilea",
+          "cover": "https://images.zaimanhua.com/webpic/18/dd27d0d3613c4effa52d3ce61bd3daba.jpg",
+          "description": "她到底是故意还是天然呆！？让人内心混乱不已，标题即是真实写照的恋爱喜剧！！\n冷静的男高中生松浦一直靠着伪装自己活到现在，虽然能轻易看透别人的本性，但不知为啥，最近却被现充团体里的双马尾美少女严木持续纠缠——！？\n面对她这不知是刻意还是无心、又略带几分“小心机”的一举一动，松浦的内心在咆哮：「快住手！不然我就要喜欢上你了啊！！！」",
+          "last_update_chapter_id": 0,
+          "last_update_chapter_name": "第68话",
+          "last_updatetime": 1791971726,
+          "num": 5770,
+          "statusTag": null,
+          "themeTag": null,
+          "title": "快住手！不然我就要喜欢上你了啊"
+        },
+        {
+          "authorTag": null,
+          "cateTag": null,
+          "chapter_id": 0,
+          "chapter_name": "",
+          "comic_id": 59627,
+          "comic_py": "tonghuabandenikaishiliaolianaimenggong",
+          "cover": "https://images.zaimanhua.com/webpic/11/guohaoiyizhengzinijiuhuihuilai0325.jpg",
+          "description": "和武老师突如其来的新作！女主角看起来好像白圣女塞西莉亚，但是比塞西莉亚好像更胆小？\n如果说白圣女和黑牧师的故事是蜂蜜牛奶糖，那么这个故事就是柠檬水果硬糖！\n总之敬请和我们一起关注两位主角的恋爱之路吧！",
+          "last_update_chapter_id": 0,
+          "last_update_chapter_name": "重要通知",
+          "last_updatetime": 1775183997,
+          "num": 4625,
+          "statusTag": null,
+          "themeTag": null,
+          "title": "童话般的你开始了恋爱猛攻"
+        },
+        {
+          "authorTag": null,
+          "cateTag": null,
+          "chapter_id": 0,
+          "chapter_name": "",
+          "comic_id": 73867,
+          "comic_py": "jzyyyj",
+          "cover": "https://images.zaimanhua.com/webpic/13/3981b02b5f6647f08ad29a535981d06a.jpg",
+          "description": "在上午6点58分开往舞原的走读电车上，有位不知名的女孩与我…还有乘客们在一起!?在两位高中生酝酿的酸甜氛围中，乘客们情绪时而低落时而高涨! !崭新的爱情喜剧! !",
+          "last_update_chapter_id": 0,
+          "last_update_chapter_name": "第52话",
+          "last_updatetime": 1791474923,
+          "num": 3560,
+          "statusTag": null,
+          "themeTag": null,
+          "title": "今朝摇曳依旧"
+        },
+        {
+          "authorTag": null,
+          "cateTag": null,
+          "chapter_id": 0,
+          "chapter_name": "",
+          "comic_id": 65993,
+          "comic_py": "fangxuehoudeouxiangyouyigemimi",
+          "cover": "https://images.zaimanhua.com/webpic/4/ouxiangmimi23703.jpg",
+          "description": "《放学后的偶像有一个秘密》的故事，是从国民偶像——黑宫玲的同班同学一一昼野阳知道了她的秘密后展开的青春爱情喜剧。传说中的黑宫不仅容貌端正，头脑也很聪明，对偶像事业和学业都能完美完成的她，昼野抱有尊敬之情。而一切的故事，则要从在考试中不及格的昼野在补习教室遇到了意想不到的人物开始说起……",
+          "last_update_chapter_id": 0,
+          "last_update_chapter_name": "第01卷",
+          "last_updatetime": 1791950154,
+          "num": 3100,
+          "statusTag": null,
+          "themeTag": null,
+          "title": "放学后的偶像有一个秘密"
+        },
+        {
+          "authorTag": null,
+          "cateTag": null,
+          "chapter_id": 0,
+          "chapter_name": "",
+          "comic_id": 65391,
+          "comic_py": "liulilonglong",
+          "cover": "https://images.zaimanhua.com/webpic/16/9c65be22d49f4281ba5120b259d8f2e5.jpg",
+          "description": "平凡的早晨，并不平凡——！！这对角到底是怎么回事？！",
+          "last_update_chapter_id": 0,
+          "last_update_chapter_name": "第51话",
+          "last_updatetime": 1788716764,
+          "num": 2200,
+          "statusTag": null,
+          "themeTag": null,
+          "title": "琉璃龙龙"
+        },
+        {
+          "authorTag": null,
+          "cateTag": null,
+          "chapter_id": 0,
+          "chapter_name": "",
+          "comic_id": 85264,
+          "comic_py": "chabuduogaichajueleba",
+          "cover": "https://images.zaimanhua.com/webpic/7/bab7242cd29f4c9c9f20de6c7a698584.jpg",
+          "description": "【2026春节联合汉化】这是一部围绕在初高中学生中拥有超高人气的15岁女高中生创作歌手·光展开的恋爱喜剧。主人公春浦是男高中生，狂热地推崇着不公开长相和本名的光，但他对长久以来的同班同学兼好友要无法理解光的好而感到焦虑不安。然而，要其实怀揣着一个无法对春浦言说的秘密。",
+          "last_update_chapter_id": 0,
+          "last_update_chapter_name": "短篇",
+          "last_updatetime": 1771257602,
+          "num": 2200,
+          "statusTag": null,
+          "themeTag": null,
+          "title": "差不多该察觉了吧"
+        },
+        {
+          "authorTag": null,
+          "cateTag": null,
+          "chapter_id": 0,
+          "chapter_name": "",
+          "comic_id": 41672,
+          "comic_py": "shouerniangyangchengjihuajie",
+          "cover": "https://images.zaimanhua.com/webpic/11/shouerniangyangchengjihuajie.jpg",
+          "description": "全方位作者远山绘麻的最新萌作！治愈满点的露耳女孩们~像动物般的女孩子，兽人女孩小绀和她的同类朋友小昂、侑芽为了独当一面，在人类爸爸身边每天过着开心快乐的日子。不可思议又可爱的毛茸茸温馨故事。",
+          "last_update_chapter_id": 0,
+          "last_update_chapter_name": "第38话",
+          "last_updatetime": 1791454300,
+          "num": 1830,
+          "statusTag": null,
+          "themeTag": null,
+          "title": "兽耳娘养成计划"
+        },
+        {
+          "authorTag": null,
+          "cateTag": null,
+          "chapter_id": 0,
+          "chapter_name": "",
+          "comic_id": 69792,
+          "comic_py": "yinghanluoli",
+          "cover": "https://images.zaimanhua.com/webpic/4/yinghanluoli_14_10_2023.jpg",
+          "description": "连黑社会都畏惧的孤傲杀手──Ｊ，与无论在家或学校都无归属的孤独少女──惠。\n两人竟灵魂对调了!?这意想不到的发展，两人将带来诙谐有趣的杀手故事！",
+          "last_update_chapter_id": 0,
+          "last_update_chapter_name": "第41话",
+          "last_updatetime": 1790962497,
+          "num": 1680,
+          "statusTag": null,
+          "themeTag": null,
+          "title": "硬汉⇔萝莉"
+        },
+        {
+          "authorTag": null,
+          "cateTag": null,
+          "chapter_id": 0,
+          "chapter_name": "",
+          "comic_id": 72283,
+          "comic_py": "ljtsbzbjbwgclfraftertherain",
+          "cover": "https://images.zaimanhua.com/webpic/6/9c4f1206d8cf41ddaf1d16782d47589d.jpg",
+          "description": "人气作品《邻家天使》的衍生漫画!高中生藤宫周住的邻居，竟是被称为“天使”的学校第一美少女·椎名真昼。 原本没有什么特别关系的两个人，从一次借伞的经历开始，他们之间不可思议的故事陆续发生。 尽管原本是毫无关系的邻居，但两人逐渐互相走近。原作小说5.5卷的插曲漫画化，两人的过去和现在， 围绕彼此的时刻，甜蜜而又令人焦急的恋爱日常喜剧，故事一页一页展开。",
+          "last_update_chapter_id": 0,
+          "last_update_chapter_name": "第40话",
+          "last_updatetime": 1790061004,
+          "num": 1600,
+          "statusTag": null,
+          "themeTag": null,
+          "title": "邻家天使不知不觉把我惯成了废人 after the rain"
+        }
+      ],
+      "weiboHtml": "<iframe width=\"100%\" height=\"450\" class=\"share_self\" frameborder=\"0\" scrolling=\"no\" src=\"//widget.weibo.com/weiboshow/index.php?language=&width=0&height=450&fansRow=2&ptype=1&speed=0&skin=9&isTitle=0&noborder=1&isWeibo=1&isFans=0&uid=5909021197&verifier=70a9fd35&colors=d3e3fa,ffffff,666666,4d6df3,d3e3fa&dpc=1\"></iframe>"
+    }
+  }
+}

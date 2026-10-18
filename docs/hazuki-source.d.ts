@@ -37,7 +37,9 @@ interface SourceComicDetails {
   /** The detail header does not display subTitle; never put authors here. */
   id?: string; title: string; cover?: string; subTitle?: string;
   description?: string; updateTime?: string; likesCount?: number | string; viewsCount?: number | string;
-  chapters: Record<string, string> | Map<string, string>;
+  chapters?: Record<string, string> | Map<string, string>;
+  /** Ordered arrays take precedence over chapters. IDs must be unique per comic. */
+  chapterGroups?: SourceChapterGroup[];
   /** Arbitrary detail rows; the host does not infer rows from tags or uploader. */
   infoFields?: SourceComicInfoField[];
   /** Declaration order is preserved. Omitted/empty hides the statistics content.
@@ -47,6 +49,71 @@ interface SourceComicDetails {
   /** Structured data for listTagGroups and existing header status, not detail rows. */
   tags?: Record<string, string[]>; recommend?: SourceComic[];
   isFavorite?: boolean; isLiked?: boolean; uploader?: string; pageCount?: number | string; subId?: string;
+}
+interface SourceChapterGroup {
+  id: string; title: string; chapters: {id: string; title: string}[];
+}
+interface SourceReadingProgress {
+  comicId: string; chapterId: string;
+  /** One-based original image page, including in double-page mode. */
+  page: number; totalPages: number;
+  visiblePages: number[];
+  reason: 'initial' | 'page' | 'chapter' | 'exit' | 'background';
+}
+interface SourceCloudReadingProgress {
+  chapterId: string;
+  /** One-based original image page. */
+  page: number;
+  totalPages?: number;
+  updatedAtMs?: number;
+}
+interface SourceCookie {
+  name: string; value: string; domain?: string; path?: string;
+  /** Unix epoch milliseconds. Omit for session cookies. */
+  expiresAt?: number | null;
+  secure?: boolean; httpOnly?: boolean;
+  sameSite?: 'strict' | 'lax' | 'none' | null;
+  /** Omitted: true for host names, false for dot-prefixed domains. */
+  hostOnly?: boolean;
+}
+interface SourceLoginMethod {
+  id: string; title: SourceText;
+  input: 'credentials' | 'account' | 'none';
+}
+type SourceLoginImage = Uint8Array | number[] | string;
+interface SourceLoginContext {
+  readonly method: string;
+  /** Foreground isolated login only. Exact HTTPS callbacks; cancellation aborts login.
+   * Default timeout 300000 ms; allowed 30000..600000. Cookie import is opt-in.
+   * The plugin must validate the returned credential and provider state.
+   */
+  requestBrowserAuthorization(options: {
+    title?: SourceText; url: string;
+    callbacks?: {origin: string; path: string; requiredQueryKeys?: string[]}[];
+    /** Default callback. Manual completion may omit callbacks. */
+    completion?: 'callback' | 'manual';
+    /** Required exact names, imported only from this isolated browser. */
+    cookieScopes?: {url: string; names: string[]}[];
+    timeoutMs?: number;
+  }): Promise<{status: 'completed'; url: string} | {status: 'timeout'}>;
+  /** Foreground only. createUrl runs inside the plugin; functions never cross
+   * the JS bridge. Validate the website credential and provider state yourself.
+   * Cancellation aborts the entire login attempt. No provider-specific SDK.
+   */
+  requestExternalAuthorization(options: {
+    title?: SourceText;
+    createUrl: (callbackUrl: string) => Awaitable<string>;
+    allowedSchemes: string[];
+    androidPackage?: string;
+    timeoutMs?: number;
+  }): Promise<{status: 'completed'; url: string} | {status: 'timeout'}>;
+  /** Empty input cannot be submitted. Cancellation rejects the entire login. */
+  requestText(options: {title: SourceText; message?: SourceText; initialValue?: string;
+    obscure?: boolean; keyboardType?: 'text' | 'number'}): Promise<string>;
+  /** Image data must be bytes or a base64 image Data URL. No URL fetching by UI. */
+  requestClickCaptcha(options: {title: SourceText; message?: SourceText;
+    image: SourceLoginImage; hintImage?: SourceLoginImage; pointCount?: number}):
+      Promise<{status: 'refresh'} | {status: 'submitted'; points: {x: number; y: number}[]}>;
 }
 interface SourceProfile { token?: string; displayName?: string; avatarUrl?: string; }
 interface SourceSetting {
@@ -169,6 +236,19 @@ interface HazukiSourceDefinition {
   comic: {
     loadInfo(id: string): Awaitable<SourceComicDetails>;
     loadEp(comicId: string, chapterId: string): Awaitable<{images: string[]}>;
+    /** Only logged-in online reader viewport events. Never image preload/download events. */
+    onReadingProgress?: (progress: SourceReadingProgress) => Awaitable<void>;
+    /** Declaring this makes online positions website-authoritative. No fallback
+     * to local/cache on missing record, login or network failure. Offline stays local.
+     */
+    loadReadingProgress?: (comicId: string) => Awaitable<SourceCloudReadingProgress | null>;
+    /** Requires loadReadingProgress. Pages start at 1; without maxPage an empty
+     * page ends import. Return all pages, not just recently opened comics.
+     */
+    loadReadingHistory?: (page: number) => Awaitable<{
+      items: {comic: SourceComic; progress: SourceCloudReadingProgress}[];
+      maxPage?: number;
+    }>;
     onImageLoad?: (url: string, comicId: string, chapterId: string) => Awaitable<ImageLoadConfig>;
     transformImageBytes?: (bytes: Uint8Array, url: string, comicId: string, chapterId: string) => Awaitable<{bytes: Uint8Array; extension?: string}>;
     /** Provides the desktop like button and enables mobile headerStats like actions. */
@@ -180,7 +260,10 @@ interface HazukiSourceDefinition {
     likeComment?: (id: string, subId: string | null, commentId: string, isLike: boolean) => Awaitable<void>;
   };
   account?: {
-    login(account: string, password: string): Awaitable<SourceProfile | void>;
+    /** Omitted preserves the legacy credentials form and login runtime. */
+    loginMethods?: SourceLoginMethod[];
+    /** context is supplied for explicitly declared foreground login methods only. */
+    login(account: string, password: string, context?: SourceLoginContext): Awaitable<SourceProfile | void>;
     logout?: () => Awaitable<void>;
     loadProfile?: () => Awaitable<SourceProfile>;
     checkInStatus?: () => Awaitable<boolean | null>;
@@ -245,7 +328,7 @@ declare const Hazuki: {
   secrets: {get(key: string): Promise<string | null>; set(key: string, value: string): Promise<void>; delete(key: string): Promise<void>};
   settings: {get(key: string): unknown; set(key: string, value: unknown): Promise<void>};
   resources: {readText(path: string): Promise<string>};
-  cookies: {get(url: string): Promise<unknown[]>; set(url: string, cookies: unknown[]): Promise<void>; delete(url: string): Promise<void>};
+  cookies: {get(url: string): Promise<SourceCookie[]>; set(url: string, cookies: SourceCookie[]): Promise<void>; delete(url: string): Promise<void>};
   images: {reverseVerticalTiles(segments: number): ImageLoadConfig};
   convert: Record<string, (...args: any[]) => any>;
   log(message: unknown, level?: string): void;

@@ -1,0 +1,49 @@
+{
+  "errno": 0,
+  "errmsg": "",
+  "data": {
+    "chapterInfo": {
+      "chapter_id": 170150,
+      "comic_id": 80825,
+      "title": "第01话",
+      "chapter_order": 10,
+      "direction": 1,
+      "page_url": [
+        "https://images.zaimanhua.com/k%2F%E6%81%90%E6%80%95%E5%A5%B9%E6%98%AF%E5%86%B2%E7%9D%80%E6%88%91%E5%93%A5%E6%9D%A5%E7%9A%84%2F%E7%AC%AC01%E8%AF%9D_1747547502%2F01.jpg",
+        "https://images.zaimanhua.com/k%2F%E6%81%90%E6%80%95%E5%A5%B9%E6%98%AF%E5%86%B2%E7%9D%80%E6%88%91%E5%93%A5%E6%9D%A5%E7%9A%84%2F%E7%AC%AC01%E8%AF%9D_1747547502%2F02.jpg",
+        "https://images.zaimanhua.com/k%2F%E6%81%90%E6%80%95%E5%A5%B9%E6%98%AF%E5%86%B2%E7%9D%80%E6%88%91%E5%93%A5%E6%9D%A5%E7%9A%84%2F%E7%AC%AC01%E8%AF%9D_1747547502%2F03.jpg",
+        "https://images.zaimanhua.com/k%2F%E6%81%90%E6%80%95%E5%A5%B9%E6%98%AF%E5%86%B2%E7%9D%80%E6%88%91%E5%93%A5%E6%9D%A5%E7%9A%84%2F%E7%AC%AC01%E8%AF%9D_1747547502%2F04.jpg",
+        "https://images.zaimanhua.com/k%2F%E6%81%90%E6%80%95%E5%A5%B9%E6%98%AF%E5%86%B2%E7%9D%80%E6%88%91%E5%93%A5%E6%9D%A5%E7%9A%84%2F%E7%AC%AC01%E8%AF%9D_1747547502%2F05.jpg",
+        "https://images.zaimanhua.com/k%2F%E6%81%90%E6%80%95%E5%A5%B9%E6%98%AF%E5%86%B2%E7%9D%80%E6%88%91%E5%93%A5%E6%9D%A5%E7%9A%84%2F%E7%AC%AC01%E8%AF%9D_1747547502%2F06.jpg",
+        "https://images.zaimanhua.com/k%2F%E6%81%90%E6%80%95%E5%A5%B9%E6%98%AF%E5%86%B2%E7%9D%80%E6%88%91%E5%93%A5%E6%9D%A5%E7%9A%84%2F%E7%AC%AC01%E8%AF%9D_1747547502%2F07.jpg",
+        "https://images.zaimanhua.com/k%2F%E6%81%90%E6%80%95%E5%A5%B9%E6%98%AF%E5%86%B2%E7%9D%80%E6%88%91%E5%93%A5%E6%9D%A5%E7%9A%84%2F%E7%AC%AC01%E8%AF%9D_1747547502%2F08.jpg",
+        "https://images.zaimanhua.com/k%2F%E6%81%90%E6%80%95%E5%A5%B9%E6%98%AF%E5%86%B2%E7%9D%80%E6%88%91%E5%93%A5%E6%9D%A5%E7%9A%84%2F%E7%AC%AC01%E8%AF%9D_1747547502%2F09.jpg",
+        "https://images.zaimanhua.com/k%2F%E6%81%90%E6%80%95%E5%A5%B9%E6%98%AF%E5%86%B2%E7%9D%80%E6%88%91%E5%93%A5%E6%9D%A5%E7%9A%84%2F%E7%AC%AC01%E8%AF%9D_1747547502%2F10.jpg",
+        "https://images.zaimanhua.com/k%2F%E6%81%90%E6%80%95%E5%A5%B9%E6%98%AF%E5%86%B2%E7%9D%80%E6%88%91%E5%93%A5%E6%9D%A5%E7%9A%84%2F%E7%AC%AC01%E8%AF%9D_1747547502%2F11.jpg",
+        "https://images.zaimanhua.com/k%2F%E6%81%90%E6%80%95%E5%A5%B9%E6%98%AF%E5%86%B2%E7%9D%80%E6%88%91%E5%93%A5%E6%9D%A5%E7%9A%84%2F%E7%AC%AC01%E8%AF%9D_1747547502%2F12.jpg",
+        "https://images.zaimanhua.com/k%2F%E6%81%90%E6%80%95%E5%A5%B9%E6%98%AF%E5%86%B2%E7%9D%80%E6%88%91%E5%93%A5%E6%9D%A5%E7%9A%84%2F%E7%AC%AC01%E8%AF%9D_1747547502%2F13.jpg",
+        "https://images.zaimanhua.com/k%2F%E6%81%90%E6%80%95%E5%A5%B9%E6%98%AF%E5%86%B2%E7%9D%80%E6%88%91%E5%93%A5%E6%9D%A5%E7%9A%84%2F%E7%AC%AC01%E8%AF%9D_1747547502%2F14.jpg",
+        "https://images.zaimanhua.com/k%2F%E6%81%90%E6%80%95%E5%A5%B9%E6%98%AF%E5%86%B2%E7%9D%80%E6%88%91%E5%93%A5%E6%9D%A5%E7%9A%84%2F%E7%AC%AC01%E8%AF%9D_1747547502%2F15.jpg",
+        "https://images.zaimanhua.com/k%2F%E6%81%90%E6%80%95%E5%A5%B9%E6%98%AF%E5%86%B2%E7%9D%80%E6%88%91%E5%93%A5%E6%9D%A5%E7%9A%84%2F%E7%AC%AC01%E8%AF%9D_1747547502%2F16.jpg",
+        "https://images.zaimanhua.com/k%2F%E6%81%90%E6%80%95%E5%A5%B9%E6%98%AF%E5%86%B2%E7%9D%80%E6%88%91%E5%93%A5%E6%9D%A5%E7%9A%84%2F%E7%AC%AC01%E8%AF%9D_1747547502%2F17.jpg",
+        "https://images.zaimanhua.com/k%2F%E6%81%90%E6%80%95%E5%A5%B9%E6%98%AF%E5%86%B2%E7%9D%80%E6%88%91%E5%93%A5%E6%9D%A5%E7%9A%84%2F%E7%AC%AC01%E8%AF%9D_1747547502%2F18.jpg",
+        "https://images.zaimanhua.com/k%2F%E6%81%90%E6%80%95%E5%A5%B9%E6%98%AF%E5%86%B2%E7%9D%80%E6%88%91%E5%93%A5%E6%9D%A5%E7%9A%84%2F%E7%AC%AC01%E8%AF%9D_1747547502%2F19.jpg",
+        "https://images.zaimanhua.com/k%2F%E6%81%90%E6%80%95%E5%A5%B9%E6%98%AF%E5%86%B2%E7%9D%80%E6%88%91%E5%93%A5%E6%9D%A5%E7%9A%84%2F%E7%AC%AC01%E8%AF%9D_1747547502%2F20.jpg",
+        "https://images.zaimanhua.com/k%2F%E6%81%90%E6%80%95%E5%A5%B9%E6%98%AF%E5%86%B2%E7%9D%80%E6%88%91%E5%93%A5%E6%9D%A5%E7%9A%84%2F%E7%AC%AC01%E8%AF%9D_1747547502%2F21.jpg",
+        "https://images.zaimanhua.com/k%2F%E6%81%90%E6%80%95%E5%A5%B9%E6%98%AF%E5%86%B2%E7%9D%80%E6%88%91%E5%93%A5%E6%9D%A5%E7%9A%84%2F%E7%AC%AC01%E8%AF%9D_1747547502%2F22.jpg",
+        "https://images.zaimanhua.com/k%2F%E6%81%90%E6%80%95%E5%A5%B9%E6%98%AF%E5%86%B2%E7%9D%80%E6%88%91%E5%93%A5%E6%9D%A5%E7%9A%84%2F%E7%AC%AC01%E8%AF%9D_1747547502%2F23.jpg",
+        "https://images.zaimanhua.com/k%2F%E6%81%90%E6%80%95%E5%A5%B9%E6%98%AF%E5%86%B2%E7%9D%80%E6%88%91%E5%93%A5%E6%9D%A5%E7%9A%84%2F%E7%AC%AC01%E8%AF%9D_1747547502%2F24.jpg",
+        "https://images.zaimanhua.com/k%2F%E6%81%90%E6%80%95%E5%A5%B9%E6%98%AF%E5%86%B2%E7%9D%80%E6%88%91%E5%93%A5%E6%9D%A5%E7%9A%84%2F%E7%AC%AC01%E8%AF%9D_1747547502%2F99.jpg",
+        "https://images.zaimanhua.com/k%2F%E6%81%90%E6%80%95%E5%A5%B9%E6%98%AF%E5%86%B2%E7%9D%80%E6%88%91%E5%93%A5%E6%9D%A5%E7%9A%84%2F%E7%AC%AC01%E8%AF%9D_1747547502%2F%E7%8C%AB%E6%81%8B%E5%B0%BE%E9%A1%B52.jpg",
+        "https://images.zaimanhua.com/k%2F%E6%81%90%E6%80%95%E5%A5%B9%E6%98%AF%E5%86%B2%E7%9D%80%E6%88%91%E5%93%A5%E6%9D%A5%E7%9A%84%2F%E7%AC%AC01%E8%AF%9D_1747547502%2F%E7%8C%AB%E6%81%8B%E5%B0%BE%E9%A1%B5240923.jpg"
+      ],
+      "picnum": 0,
+      "page_url_hd": null,
+      "author": {
+        "name": "秋篠姫香",
+        "uid": 100000969,
+        "photo": "https://avatar.zaimanhua.com/90/57/90574481216a06e4946f18354cdb88d0.png"
+      }
+    }
+  }
+}

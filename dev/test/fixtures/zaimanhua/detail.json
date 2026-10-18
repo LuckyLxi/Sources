@@ -1,0 +1,326 @@
+{
+  "errno": 0,
+  "errmsg": "",
+  "data": {
+    "comicInfo": {
+      "id": 80825,
+      "title": "恐怕她是冲着我哥来的",
+      "aliasName": "",
+      "realName": "おそらくカノジョは俺の兄貴を狙ってる",
+      "statusTagList": [
+        {
+          "tagId": 2309,
+          "tagName": "连载中",
+          "tagPy": "lianzaizhong"
+        }
+      ],
+      "cateTagList": [
+        {
+          "tagId": 3262,
+          "tagName": "少年漫画",
+          "tagPy": "shaonian"
+        }
+      ],
+      "authorsTagList": [
+        {
+          "tagId": 18578,
+          "tagName": "伊瀬まるの",
+          "tagPy": "isemaruno"
+        }
+      ],
+      "zoneTagList": [
+        {
+          "tagId": 2304,
+          "tagName": "日本",
+          "tagPy": "riben"
+        }
+      ],
+      "themeTagList": [
+        {
+          "tagId": 8,
+          "tagName": "爱情",
+          "tagPy": "aiqing"
+        },
+        {
+          "tagId": 13,
+          "tagName": "校园",
+          "tagPy": "xiaoyuan"
+        }
+      ],
+      "comicPy": "kongpatashichongzhewogelaide",
+      "lastUpdateTime": 1790607951,
+      "lastUpdateChapterName": "番外13",
+      "lastUpdateChapterId": 193700,
+      "hotNum": 0,
+      "hitNum": 0,
+      "subNum": 0,
+      "viewPointNum": 0,
+      "description": "男高中生·远野阳太，因多次被企图接近自己身为帅哥的大哥的女生们欺骗利用，他下定决心再也不相信任何女性。\n就在这时，班上突然出现了一位总是主动找他搭话的美少女·北条泉！？她的目标是我哥…？泉的真实想法令人在意——。\n疑神疑鬼的爱情喜剧就此开幕☆",
+      "comicNotice": "",
+      "chapterList": [
+        {
+          "title": "连载",
+          "data": [
+            {
+              "chapter_id": 193700,
+              "chapter_title": "番外13",
+              "updatetime": 1790607951,
+              "filesize": 0,
+              "chapter_order": 290,
+              "is_fee": false
+            },
+            {
+              "chapter_id": 193699,
+              "chapter_title": "第14话",
+              "updatetime": 1790607945,
+              "filesize": 0,
+              "chapter_order": 280,
+              "is_fee": false
+            },
+            {
+              "chapter_id": 190704,
+              "chapter_title": "番外12",
+              "updatetime": 1786296207,
+              "filesize": 0,
+              "chapter_order": 270,
+              "is_fee": false
+            },
+            {
+              "chapter_id": 190703,
+              "chapter_title": "第13话",
+              "updatetime": 1786296201,
+              "filesize": 0,
+              "chapter_order": 260,
+              "is_fee": false
+            },
+            {
+              "chapter_id": 186756,
+              "chapter_title": "番外11",
+              "updatetime": 1780203796,
+              "filesize": 0,
+              "chapter_order": 250,
+              "is_fee": false
+            },
+            {
+              "chapter_id": 185950,
+              "chapter_title": "第12话",
+              "updatetime": 1778783898,
+              "filesize": 0,
+              "chapter_order": 240,
+              "is_fee": false
+            },
+            {
+              "chapter_id": 183726,
+              "chapter_title": "番外10",
+              "updatetime": 1774800440,
+              "filesize": 0,
+              "chapter_order": 230,
+              "is_fee": false
+            },
+            {
+              "chapter_id": 183725,
+              "chapter_title": "第11话",
+              "updatetime": 1774800409,
+              "filesize": 0,
+              "chapter_order": 220,
+              "is_fee": false
+            },
+            {
+              "chapter_id": 182759,
+              "chapter_title": "番外09",
+              "updatetime": 1773240220,
+              "filesize": 0,
+              "chapter_order": 210,
+              "is_fee": false
+            },
+            {
+              "chapter_id": 182758,
+              "chapter_title": "第10话",
+              "updatetime": 1773240152,
+              "filesize": 0,
+              "chapter_order": 200,
+              "is_fee": false
+            },
+            {
+              "chapter_id": 181763,
+              "chapter_title": "番外08",
+              "updatetime": 1771419583,
+              "filesize": 0,
+              "chapter_order": 190,
+              "is_fee": false
+            },
+            {
+              "chapter_id": 181736,
+              "chapter_title": "第09话",
+              "updatetime": 1771343242,
+              "filesize": 0,
+              "chapter_order": 180,
+              "is_fee": false
+            },
+            {
+              "chapter_id": 181707,
+              "chapter_title": "番外07",
+              "updatetime": 1771247918,
+              "filesize": 0,
+              "chapter_order": 160,
+              "is_fee": false
+            },
+            {
+              "chapter_id": 179911,
+              "chapter_title": "第08话",
+              "updatetime": 1767105079,
+              "filesize": 0,
+              "chapter_order": 150,
+              "is_fee": false
+            },
+            {
+              "chapter_id": 179749,
+              "chapter_title": "番外06",
+              "updatetime": 1766847170,
+              "filesize": 0,
+              "chapter_order": 140,
+              "is_fee": false
+            },
+            {
+              "chapter_id": 177527,
+              "chapter_title": "第07话",
+              "updatetime": 1762956570,
+              "filesize": 0,
+              "chapter_order": 130,
+              "is_fee": false
+            },
+            {
+              "chapter_id": 177526,
+              "chapter_title": "番外05",
+              "updatetime": 1762956516,
+              "filesize": 0,
+              "chapter_order": 120,
+              "is_fee": false
+            },
+            {
+              "chapter_id": 177525,
+              "chapter_title": "第06话",
+              "updatetime": 1762956487,
+              "filesize": 0,
+              "chapter_order": 110,
+              "is_fee": false
+            },
+            {
+              "chapter_id": 177524,
+              "chapter_title": "番外04",
+              "updatetime": 1762956380,
+              "filesize": 0,
+              "chapter_order": 100,
+              "is_fee": false
+            },
+            {
+              "chapter_id": 176692,
+              "chapter_title": "第05话",
+              "updatetime": 1761148353,
+              "filesize": 0,
+              "chapter_order": 90,
+              "is_fee": false
+            },
+            {
+              "chapter_id": 175071,
+              "chapter_title": "番外03",
+              "updatetime": 1758014425,
+              "filesize": 0,
+              "chapter_order": 80,
+              "is_fee": false
+            },
+            {
+              "chapter_id": 175070,
+              "chapter_title": "第04话",
+              "updatetime": 1758014418,
+              "filesize": 0,
+              "chapter_order": 70,
+              "is_fee": false
+            },
+            {
+              "chapter_id": 170641,
+              "chapter_title": "番外02",
+              "updatetime": 1748842625,
+              "filesize": 0,
+              "chapter_order": 40,
+              "is_fee": false
+            },
+            {
+              "chapter_id": 170640,
+              "chapter_title": "第03话",
+              "updatetime": 1748842617,
+              "filesize": 0,
+              "chapter_order": 30,
+              "is_fee": false
+            },
+            {
+              "chapter_id": 170151,
+              "chapter_title": "第02话",
+              "updatetime": 1747547538,
+              "filesize": 0,
+              "chapter_order": 20,
+              "is_fee": false
+            },
+            {
+              "chapter_id": 170152,
+              "chapter_title": "番外01",
+              "updatetime": 1747547548,
+              "filesize": 0,
+              "chapter_order": 15,
+              "is_fee": false
+            },
+            {
+              "chapter_id": 170150,
+              "chapter_title": "第01话",
+              "updatetime": 1747547523,
+              "filesize": 0,
+              "chapter_order": 10,
+              "is_fee": false
+            }
+          ]
+        },
+        {
+          "title": "其它汉化版",
+          "data": [
+            {
+              "chapter_id": 174853,
+              "chapter_title": "番外3",
+              "updatetime": 1757583695,
+              "filesize": 0,
+              "chapter_order": 60,
+              "is_fee": false
+            },
+            {
+              "chapter_id": 174852,
+              "chapter_title": "04话",
+              "updatetime": 1757583657,
+              "filesize": 0,
+              "chapter_order": 50,
+              "is_fee": false
+            }
+          ]
+        }
+      ],
+      "isFee": false,
+      "canRead": true,
+      "cover": "https://images.zaimanhua.com/webpic/12/2bb5562431424acd9cfaf75b831e5a08.jpg",
+      "sumChapter": 0,
+      "sumSource": 0,
+      "hotNumStr": "1百万+",
+      "subNumStr": "1万+"
+    },
+    "readingRecord": {
+      "type_name": "",
+      "uid": 0,
+      "source": 0,
+      "biz_id": 0,
+      "chapter_id": 0,
+      "viewing_time": 0,
+      "record": 0,
+      "volume_id": 0,
+      "total_num": 0,
+      "chapter_name": "",
+      "volume_name": ""
+    }
+  }
+}
