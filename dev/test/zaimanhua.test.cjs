@@ -31,6 +31,8 @@ function respond(url) {
   if (/\/lpi\/v1\/login\/(passwd|sms)$/.test(route.pathname))
     return ok({ user: { token: "test-session" } });
   if (route.pathname === "/lpi/v1/sms/send") return ok({});
+  if (route.pathname === "/lpi/v1/task/list")
+    return ok({ task: { signInfo: { currentSign: true } } });
   if (route.pathname === "/app/v1/comment/list") {
     const name =
       route.searchParams.get("objId") === "999999999"
@@ -176,7 +178,7 @@ test("registers an API v1 source discoverable by the index generator", () => {
   const { buildIndex } = require("../scripts/update-plugin-index.cjs");
   const entry = buildIndex(ROOT).plugins.find((item) => item.id === source.id);
   assert.equal(entry.name, "再漫画");
-  assert.equal(entry.version, "1.3.1");
+  assert.equal(entry.version, "1.4.0");
   assert.equal(source.apiVersion, 1);
   assert.equal(source.comic.onReadingProgress, undefined);
   assert.equal(source.comic.loadReadingProgress, undefined);
@@ -199,6 +201,18 @@ test("registers an API v1 source discoverable by the index generator", () => {
     2: "热门",
   });
   assert.equal(source.presentation.commentDefaultOrder, "1");
+  assert.equal(source.presentation.dailyCheckIn, true);
+  for (const [id, location] of [
+    ["checkIn", "homeProfile"],
+    ["autoCheckIn", "other"],
+  ])
+    assert.ok(
+      source.presentation.buttons.some(
+        (button) => button.id === id && button.location === location,
+      ),
+    );
+  assert.equal(typeof source.account.checkInStatus, "function");
+  assert.equal(typeof source.account.checkIn, "function");
   assert.notEqual(source.presentation.commentReplies, true);
   const rules = source.presentation.directComicIdRules.patterns.map(
     (pattern) => new RegExp(pattern, "i"),
@@ -217,6 +231,219 @@ test("registers an API v1 source discoverable by the index generator", () => {
     rules.some((rule) => rule.test("https://example.com/80825")),
     false,
   );
+});
+
+// Constructed task data using the website's observed boolean currentSign field.
+const taskResponse = (currentSign) => ({
+  status: 200,
+  body: JSON.stringify({
+    errno: 0,
+    data: { task: { signInfo: { currentSign } } },
+  }),
+});
+const signResponse = (errno = 0, errmsg = "") => ({
+  status: 200,
+  body: JSON.stringify({ errno, errmsg, data: null }),
+});
+
+test("check-in without a session is skipped without any request", async () => {
+  const { source, requests } = plugin();
+  assert.equal(await source.account.checkInStatus(), null);
+  assert.deepEqual(plain(await source.account.checkIn()), {
+    status: "skipped",
+  });
+  assert.equal(requests.length, 0);
+});
+
+test("check-in status comes from the website and completed days never post", async () => {
+  let signed = false;
+  const { source, requests } = plugin(() => taskResponse(signed), {
+    secrets: { session: "test-session" },
+    storage: { uid: 42, lastCheckInDate: "2026-10-18" },
+  });
+  assert.equal(await source.account.checkInStatus(), false);
+  signed = true;
+  assert.equal(await source.account.checkInStatus(), true);
+  assert.equal((await source.account.checkIn()).status, "alreadyCheckedIn");
+  assert.ok(
+    requests.every(
+      (request) =>
+        request.method === "GET" &&
+        request.url.pathname === "/lpi/v1/task/list",
+    ),
+  );
+  signed = false;
+  assert.equal(
+    await source.account.checkInStatus(),
+    false,
+    "a new server day must not reuse a cached local day",
+  );
+});
+
+test("check-in posts once to the public user-center route and verifies completion", async () => {
+  let signed = false;
+  const { source, requests } = plugin(
+    (url) => {
+      if (new URL(url).pathname === "/lpi/v1/task/list")
+        return taskResponse(signed);
+      if (new URL(url).pathname === "/lpi/v1/task/sign_in") {
+        signed = true;
+        return signResponse();
+      }
+    },
+    { secrets: { session: "test-session" }, storage: { uid: 42 } },
+  );
+  assert.deepEqual(plain(await source.account.checkIn()), {
+    status: "success",
+    message: "签到成功",
+  });
+  assert.deepEqual(
+    requests.map((request) => [request.method, request.url.pathname]),
+    [
+      ["GET", "/lpi/v1/task/list"],
+      ["POST", "/lpi/v1/task/sign_in"],
+      ["GET", "/lpi/v1/task/list"],
+    ],
+  );
+  for (const request of requests) {
+    assert.equal(request.url.origin, "https://i.zaimanhua.com");
+    assert.equal(request.url.search, "");
+    assert.equal(request.headers.Referer, "https://i.zaimanhua.com/");
+    assert.equal(request.headers.Platform, "pc");
+    assert.equal(request.headers.Authorization, "Bearer test-session");
+    assert.equal(request.body, undefined);
+  }
+  assert.equal((await source.account.checkIn()).status, "alreadyCheckedIn");
+  assert.equal(
+    requests.filter((request) => request.method === "POST").length,
+    1,
+  );
+});
+
+test("invalid task status fails before check-in can be submitted", async () => {
+  for (const value of [undefined, null, 0, 1, "false", "true", {}]) {
+    const { source, requests } = plugin(() => taskResponse(value), {
+      secrets: { session: "test-session" },
+    });
+    await assert.rejects(source.account.checkIn(), /签到状态格式异常/);
+    assert.equal(requests.length, 1);
+    assert.equal(requests[0].method, "GET");
+  }
+});
+
+test("failed check-ins do not report success or retain a pending failed attempt", async () => {
+  let attempt = 0;
+  let signed = false;
+  const { source, requests } = plugin(
+    (url) => {
+      if (new URL(url).pathname.endsWith("/list")) return taskResponse(signed);
+      attempt++;
+      if (attempt === 1) return signResponse(5, "签到失败");
+      signed = true;
+      return signResponse();
+    },
+    { secrets: { session: "test-session" } },
+  );
+  await assert.rejects(source.account.checkIn(), /签到失败/);
+  assert.equal((await source.account.checkIn()).status, "success");
+  assert.equal(
+    requests.filter((request) => request.method === "POST").length,
+    2,
+  );
+  const unconfirmed = plugin(
+    (url) =>
+      new URL(url).pathname.endsWith("/list")
+        ? taskResponse(false)
+        : signResponse(),
+    { secrets: { session: "test-session" } },
+  );
+  await assert.rejects(
+    unconfirmed.source.account.checkIn(),
+    /网站尚未确认签到成功/,
+  );
+});
+
+test("duplicate check-in responses require server confirmation", async () => {
+  for (const confirmed of [true, false]) {
+    let posted = false;
+    const { source } = plugin(
+      (url) => {
+        if (new URL(url).pathname.endsWith("/list"))
+          return taskResponse(posted && confirmed);
+        posted = true;
+        return signResponse(5, "今日已经签到，请勿重复签到");
+      },
+      { secrets: { session: "test-session" } },
+    );
+    if (confirmed)
+      assert.equal((await source.account.checkIn()).status, "alreadyCheckedIn");
+    else await assert.rejects(source.account.checkIn(), /今日已经签到/);
+  }
+});
+
+test("simultaneous manual and automatic check-ins share one server write", async () => {
+  let ready;
+  let release;
+  const started = new Promise((resolve) => {
+    ready = resolve;
+  });
+  const gate = new Promise((resolve) => {
+    release = resolve;
+  });
+  let signed = false;
+  const { source, requests } = plugin(
+    async (url) => {
+      if (new URL(url).pathname.endsWith("/list")) {
+        if (!signed) {
+          ready();
+          await gate;
+        }
+        return taskResponse(signed);
+      }
+      signed = true;
+      return signResponse();
+    },
+    { secrets: { session: "test-session" } },
+  );
+  const first = source.account.checkIn();
+  await started;
+  const second = source.account.checkIn();
+  release();
+  const results = await Promise.all([first, second]);
+  assert.ok(results.every((result) => result.status === "success"));
+  assert.equal(
+    requests.filter((request) => request.method === "POST").length,
+    1,
+  );
+});
+
+test("check-in handles expired sessions and does not post after an account change", async () => {
+  for (const failure of [
+    { status: 401, body: "" },
+    signResponse(99, "请先登录"),
+  ]) {
+    const { source, requests } = plugin(() => failure, {
+      secrets: { session: "test-session" },
+    });
+    await assert.rejects(
+      source.account.checkIn(),
+      (error) => error.code === "AUTH_EXPIRED",
+    );
+    assert.equal(requests.length, 1);
+  }
+  let state;
+  state = plugin(
+    () => {
+      state.secrets.set("session", "test-other-session");
+      return taskResponse(false);
+    },
+    { secrets: { session: "test-session" } },
+  );
+  await assert.rejects(
+    state.source.account.checkIn(),
+    (error) => error.code === "AUTH_EXPIRED",
+  );
+  assert.equal(state.requests.length, 1);
 });
 
 test("public comments preserve the site's page order and quoted ancestors", async () => {

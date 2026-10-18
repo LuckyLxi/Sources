@@ -9,6 +9,7 @@
  *   /app/v1/comic/sub/{list,checkIsSub,add,del}
  *   /app/v1/comment/{list,addLike}
  *   https://v4api.zaimanhua.com/app/v1/comment/create
+ *   https://i.zaimanhua.com/lpi/v1/task/{list,sign_in}
  *   /api/v1/comic1/{filter,rank_list,comic/same_list}
  *   /api/v1/comic2/{index,update_list,comic/detail,chapter/detail}
  * Optional account flows use the site's own point captcha/SMS and browser OAuth
@@ -19,6 +20,7 @@
 
 const zaimanhuaOrigin = "https://manhua.zaimanhua.com";
 const zaimanhuaAccountOrigin = "https://account-api.zaimanhua.com";
+const zaimanhuaUserCenterOrigin = "https://i.zaimanhua.com";
 const zaimanhuaPageSize = 20;
 // The host comments gateway displays 16 entries per page.
 const zaimanhuaCommentPageSize = 16;
@@ -27,8 +29,11 @@ const zaimanhuaUserAgent =
 
 /** @typedef {Record<string, any>} ZaimanhuaData */
 /** @typedef {{method?: 'GET' | 'POST', anonymous?: boolean, token?: string,
- * allowError?: boolean, origin?: string, common?: boolean,
+ * allowError?: boolean, origin?: string, referer?: string, common?: boolean,
  * jsonBody?: Record<string, unknown>}} ZaimanhuaRequestOptions */
+/** @typedef {{status: 'success' | 'alreadyCheckedIn' | 'skipped', message?: string}} ZaimanhuaCheckInResult */
+/** @type {{token: string, promise: Promise<ZaimanhuaCheckInResult>} | null} */
+let zaimanhuaCheckInPending = null;
 
 /** Filter IDs from the site's /api/v1/comic1/filter_type (not detail tag IDs). */
 const zaimanhuaThemes = [
@@ -120,7 +125,7 @@ async function zaimanhuaApi(path, params = {}, options = {}) {
   /** @type {Record<string, string>} */
   const headers = {
     Accept: "application/json",
-    Referer: zaimanhuaOrigin + "/",
+    Referer: options.referer || zaimanhuaOrigin + "/",
     "User-Agent": zaimanhuaUserAgent,
     Platform: "pc",
   };
@@ -414,6 +419,85 @@ async function zaimanhuaFavoriteSession() {
   if (!token)
     throw Hazuki.error("AUTH_EXPIRED", "再漫画：请先登录再使用云端订阅");
   return token;
+}
+
+/** Read the website's daily status, not a device date or an App-only record.
+ * @param {string} token @returns {Promise<boolean>}
+ */
+async function zaimanhuaSignedToday(token) {
+  const data = await zaimanhuaRequest(
+    "/lpi/v1/task/list",
+    {},
+    {
+      token,
+      origin: zaimanhuaUserCenterOrigin,
+      referer: zaimanhuaUserCenterOrigin + "/",
+      common: false,
+    },
+  );
+  const signed = data.task?.signInfo?.currentSign;
+  if (typeof signed !== "boolean")
+    throw new Error("再漫画：签到状态格式异常，请稍后重试");
+  return signed;
+}
+
+/** @returns {Promise<boolean | null>} */
+async function zaimanhuaCheckInStatus() {
+  const token = await Hazuki.secrets.get("session");
+  return token ? zaimanhuaSignedToday(token) : null;
+}
+
+/** @param {string} token @returns {Promise<ZaimanhuaCheckInResult>} */
+async function zaimanhuaPerformCheckIn(token) {
+  if (await zaimanhuaSignedToday(token))
+    return { status: "alreadyCheckedIn", message: "今日已签到" };
+  if ((await Hazuki.secrets.get("session")) !== token)
+    throw Hazuki.error("AUTH_EXPIRED", "再漫画：登录状态已变化，请重试签到");
+  // The public website calls sign_in() without body/query arguments. It does not
+  // claim unrelated tasks or cumulative rewards as part of the sign-in action.
+  const result = await zaimanhuaApi(
+    "/lpi/v1/task/sign_in",
+    {},
+    {
+      method: "POST",
+      token,
+      origin: zaimanhuaUserCenterOrigin,
+      referer: zaimanhuaUserCenterOrigin + "/",
+      common: false,
+      allowError: true,
+    },
+  );
+  const message = zaimanhuaText(result.errmsg);
+  if (Number(result.errno) !== 0) {
+    // Another client can sign after the status read. Confirm that state before
+    // treating a duplicate-sign response as already completed.
+    if (
+      /(?:已(?:经)?签到|重复签到)/.test(message) &&
+      (await zaimanhuaSignedToday(token))
+    )
+      return { status: "alreadyCheckedIn", message };
+    throw new Error("再漫画：" + (message || "签到失败，请稍后重试"));
+  }
+  if (!(await zaimanhuaSignedToday(token)))
+    throw new Error("再漫画：网站尚未确认签到成功，请刷新状态后重试");
+  return { status: "success", message: message || "签到成功" };
+}
+
+/** Deduplicate simultaneous manual/automatic check-ins for the same session.
+ * @returns {Promise<ZaimanhuaCheckInResult>}
+ */
+async function zaimanhuaCheckIn() {
+  const token = await Hazuki.secrets.get("session");
+  if (!token) return { status: "skipped" };
+  if (zaimanhuaCheckInPending?.token === token)
+    return zaimanhuaCheckInPending.promise;
+  const pending = { token, promise: zaimanhuaPerformCheckIn(token) };
+  zaimanhuaCheckInPending = pending;
+  try {
+    return await pending.promise;
+  } finally {
+    if (zaimanhuaCheckInPending === pending) zaimanhuaCheckInPending = null;
+  }
 }
 
 /** The website has one subscription list, without user-created folders.
@@ -886,18 +970,21 @@ async function zaimanhuaLikeComment(id, _subId, commentId, isLike) {
 Hazuki.registerSource({
   id: "zaimanhua",
   name: "再漫画",
-  version: "1.3.1",
+  version: "1.4.0",
   apiVersion: 1,
   presentation: {
     showComments: true,
     commentOrders: { 1: "最新", 2: "热门" },
     commentDefaultOrder: "1",
     buttons: [
+      { id: "checkIn", location: "homeProfile" },
+      { id: "autoCheckIn", location: "other" },
       { id: "copyComicId", location: "comicDetailInfo" },
       { id: "relatedComics", location: "comicDetailTabs" },
     ],
     listTagGroups: ["题材"],
     skipPeriodicRelogin: true,
+    dailyCheckIn: true,
     refreshCloudFavorites: true,
     directComicIdRules: {
       patterns: [
@@ -918,6 +1005,8 @@ Hazuki.registerSource({
       { id: "weibo", title: "微博授权", input: "none" },
     ],
     login: zaimanhuaLogin,
+    checkInStatus: zaimanhuaCheckInStatus,
+    checkIn: zaimanhuaCheckIn,
     loadProfile: async () => {
       const token = await Hazuki.secrets.get("session");
       if (!token) throw Hazuki.error("AUTH_EXPIRED", "再漫画：请重新登录");

@@ -53,3 +53,23 @@ The popular fixtures were captured anonymously on 2026-10-18 with `size=16`.
 No real comment was sent, replied to, or liked during verification. Authenticated
 write success is mocked and has not been verified with a real account. No unlike
 endpoint or separate reply-thread endpoint has been established.
+
+Check-in routes are declared by the account center's `app.6311fe13.js`:
+GET `https://i.zaimanhua.com/lpi/v1/task/list` and bodyless POST
+`https://i.zaimanhua.com/lpi/v1/task/sign_in`. Its `791.e4f28d59.js`
+component reads the boolean `data.task.signInfo.currentSign` and signs only
+through the separate button action. These requests use `Platform: pc` and the
+same Bearer session; there are no comic API common query parameters.
+
+On 2026-10-18, with the user's permission, the production plugin's check-in
+callbacks were exercised in the authenticated website browser using a minimal
+Hazuki HTTP/session bridge. Status changed from false to true after one POST
+(`errno=0`, `errmsg="成功"`); a second callback returned `alreadyCheckedIn`
+without another POST. The user had already signed in the official App, but
+the website initially reported false; this observation does not establish
+whether all App/website accounts share check-in state. The real host's QuickJS
+account gateway was verified separately with a synthetic server/session.
+
+Task/status and sign-in/error responses in unit tests are constructed samples
+using the observed structure, not stored real account payloads. No account
+credentials, account balances, task lists or session tokens were saved as fixtures.
