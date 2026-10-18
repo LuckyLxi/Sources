@@ -7,11 +7,12 @@
  * Routes and field names were observed in the public desktop site's responses:
  *   /app/v1/search/index
  *   /app/v1/comic/sub/{list,checkIsSub,add,del}
- *   /app/v1/readingRecord/{add,list}
+ *   /app/v1/comment/{list,addLike}
+ *   https://v4api.zaimanhua.com/app/v1/comment/create
  *   /api/v1/comic1/{filter,rank_list,comic/same_list}
  *   /api/v1/comic2/{index,update_list,comic/detail,chapter/detail}
  * Optional account flows use the site's own point captcha/SMS and browser OAuth
- * endpoints. Native chapter groups and progress reports require the updated host.
+ * endpoints. Native chapter groups and login interactions require the updated host.
  * Browser OAuth state is passed unchanged to the provider and consumed by the
  * site's account backend; the final token is verified before saving a session.
  */
@@ -19,12 +20,15 @@
 const zaimanhuaOrigin = "https://manhua.zaimanhua.com";
 const zaimanhuaAccountOrigin = "https://account-api.zaimanhua.com";
 const zaimanhuaPageSize = 20;
+// The host comments gateway displays 16 entries per page.
+const zaimanhuaCommentPageSize = 16;
 const zaimanhuaUserAgent =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36";
 
 /** @typedef {Record<string, any>} ZaimanhuaData */
 /** @typedef {{method?: 'GET' | 'POST', anonymous?: boolean, token?: string,
- * allowError?: boolean, origin?: string, common?: boolean}} ZaimanhuaRequestOptions */
+ * allowError?: boolean, origin?: string, common?: boolean,
+ * jsonBody?: Record<string, unknown>}} ZaimanhuaRequestOptions */
 
 /** Filter IDs from the site's /api/v1/comic1/filter_type (not detail tag IDs). */
 const zaimanhuaThemes = [
@@ -123,13 +127,18 @@ async function zaimanhuaApi(path, params = {}, options = {}) {
   if (token) headers.Authorization = "Bearer " + token;
   const clientId = zaimanhuaText(Hazuki.storage.get("clientId"));
   if (clientId) headers["X-Client-ID"] = clientId;
-  // The site's POST wrapper submits parameters in the query string. Do not log
+  if (options.jsonBody) headers["Content-Type"] = "application/json";
+  // Legacy POSTs use query parameters; the v4 comment API uses a JSON body. Do not log
   // request URLs or caught network errors: login parameters can contain secrets.
   let response;
   try {
     response =
       options.method === "POST"
-        ? await Hazuki.http.post(url, headers)
+        ? await Hazuki.http.post(
+            url,
+            headers,
+            options.jsonBody ? JSON.stringify(options.jsonBody) : undefined,
+          )
         : await Hazuki.http.get(url, headers);
   } catch {
     throw new Error("再漫画：网络请求失败，请检查连接后重试");
@@ -397,138 +406,6 @@ async function zaimanhuaLogin(account, password, context) {
   await Hazuki.secrets.set("session", token);
   await Hazuki.storage.set("uid", verified.uid);
   return verified.profile;
-}
-
-/** @param {SourceReadingProgress} progress */
-async function zaimanhuaReadingProgress(progress) {
-  const token = await Hazuki.secrets.get("session");
-  if (!token) return;
-  const comicId = Number(zaimanhuaId(progress.comicId));
-  const chapterId = Number(zaimanhuaId(progress.chapterId));
-  if (
-    !Number.isSafeInteger(comicId) ||
-    !Number.isSafeInteger(chapterId) ||
-    !Number.isInteger(progress.page) ||
-    !Number.isInteger(progress.totalPages) ||
-    progress.page < 1 ||
-    progress.page > progress.totalPages
-  )
-    throw new Error("再漫画：阅读进度数据异常");
-  await zaimanhuaApi(
-    "/app/v1/readingRecord/add",
-    {
-      source: "mh",
-      json: JSON.stringify([
-        { bizId: comicId, chapterId, page: progress.page },
-      ]),
-    },
-    { method: "POST", token },
-  );
-}
-
-/** @returns {Promise<string>} */
-async function zaimanhuaReadingSession() {
-  const token = await Hazuki.secrets.get("session");
-  if (!token)
-    throw Hazuki.error("AUTH_EXPIRED", "再漫画：请先登录再读取网站阅读进度");
-  return token;
-}
-
-/** The website displays record directly as an original, one-based image page.
- * total_num is not mapped: its image-count semantics have not been verified.
- * @param {unknown} value @param {string} comicId
- * @returns {SourceCloudReadingProgress | null}
- */
-function zaimanhuaParseReadingRecord(value, comicId) {
-  if (value === null) return null;
-  if (!value || typeof value !== "object" || Array.isArray(value))
-    throw new Error("再漫画：网站阅读进度格式异常");
-  const record = /** @type {ZaimanhuaData} */ (value);
-  const id = zaimanhuaText(record.biz_id);
-  const chapterId = zaimanhuaText(record.chapter_id);
-  const pageText = zaimanhuaText(record.record);
-  // The detail endpoint returns this explicit zero-valued placeholder when the
-  // website has no position. Missing/malformed fields must not imitate it.
-  if (chapterId === "0" && pageText === "0" && (id === "0" || id === comicId))
-    return null;
-  const page = Number(pageText);
-  if (
-    id !== comicId ||
-    !/^[1-9]\d*$/.test(chapterId) ||
-    !/^[1-9]\d*$/.test(pageText) ||
-    !Number.isSafeInteger(page)
-  )
-    throw new Error("再漫画：网站阅读进度无效或与漫画不匹配");
-  const seconds = Number(zaimanhuaText(record.viewing_time));
-  const updatedAtMs = seconds * 1000;
-  return {
-    chapterId,
-    page,
-    ...(seconds > 0 && Number.isSafeInteger(updatedAtMs)
-      ? { updatedAtMs }
-      : {}),
-  };
-}
-
-/** Always re-read the exact comic. Never restore from history, a local position,
- * or a session cache, and never write state from this read-only host runtime.
- * @param {string} comicId @returns {Promise<SourceCloudReadingProgress | null>}
- */
-async function zaimanhuaLoadReadingProgress(comicId) {
-  comicId = zaimanhuaId(comicId);
-  const token = await zaimanhuaReadingSession();
-  const data = await zaimanhuaRequest(
-    "/api/v1/comic2/comic/detail",
-    { id: comicId },
-    { token },
-  );
-  if (!data.comicInfo || zaimanhuaText(data.comicInfo.id) !== comicId)
-    throw new Error("再漫画：漫画不存在或网站阅读进度数据异常");
-  return zaimanhuaParseReadingRecord(data.readingRecord, comicId);
-}
-
-/** @param {number} page @returns {Promise<{
- * items: {comic: SourceComic, progress: SourceCloudReadingProgress}[]
- * }>}
- */
-async function zaimanhuaLoadReadingHistory(page) {
-  const token = await zaimanhuaReadingSession();
-  page = zaimanhuaPageNumber(page);
-  // The account center uses pageSize here, not the size used by subscriptions.
-  const data = await zaimanhuaRequest(
-    "/app/v1/readingRecord/list",
-    {
-      source: "mh",
-      page,
-      pageSize: zaimanhuaPageSize,
-    },
-    { token },
-  );
-  const records =
-    data.recordList === null ? [] : zaimanhuaList(data.recordList);
-  if (data.recordList !== null && records.length !== data.recordList.length)
-    throw new Error("再漫画：网站阅读历史列表格式异常");
-  /** @type {{comic: SourceComic, progress: SourceCloudReadingProgress}[]} */
-  const items = [];
-  for (const record of records) {
-    const id = zaimanhuaId(record.biz_id);
-    const progress = zaimanhuaParseReadingRecord(record, id);
-    const title = zaimanhuaText(record.title);
-    if (!progress || !title)
-      throw new Error("再漫画：网站阅读历史缺少漫画名称或有效阅读位置");
-    items.push({
-      comic: {
-        id,
-        title,
-        cover: zaimanhuaImageUrl(record.cover),
-        subTitle: zaimanhuaText(record.chapter_name),
-      },
-      progress,
-    });
-  }
-  // The published history UI does not provide a reliable total. Deliberately
-  // omit maxPage so the host imports every page until the website returns empty.
-  return { items };
 }
 
 /** @returns {Promise<string>} */
@@ -824,12 +701,197 @@ async function zaimanhuaDetails(id) {
   };
 }
 
+/** @param {ZaimanhuaData} row */
+function zaimanhuaCommentAuthor(row) {
+  return zaimanhuaText(row.author?.nickname || row.nickname) || "匿名用户";
+}
+
+/** @param {string} value */
+function zaimanhuaEscapeHtml(value) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+/** @param {unknown} value */
+function zaimanhuaCommentCount(value) {
+  const count = Number(value);
+  return Number.isSafeInteger(count) && count >= 0 ? count : 0;
+}
+
+/** The site's comma-separated IDs are current comment, parent, older ancestors.
+ * Map entries alone are not a page: they include quoted comments from other pages.
+ * @param {string} id @param {string | null} _subId @param {number} page
+ * @param {string | null} replyTo @param {string} [order]
+ * @returns {Promise<{comments: SourceComment[], maxPage: number}>}
+ */
+async function zaimanhuaComments(id, _subId, page, replyTo, order = "1") {
+  id = zaimanhuaId(id);
+  if (replyTo)
+    throw new Error("再漫画：回复随漫画评论展示，不支持独立回复列表");
+  const sortBy = order || "1";
+  if (!["1", "2"].includes(sortBy)) throw new Error("再漫画：未知的评论排序");
+  page = zaimanhuaPageNumber(page);
+  const data = await zaimanhuaRequest("/app/v1/comment/list", {
+    objId: id,
+    sortBy,
+    type: 4,
+    page,
+    size: zaimanhuaCommentPageSize,
+    top_status: 0,
+    is_goods: 0,
+  });
+  if (
+    !Array.isArray(data.commentIdList) ||
+    (data.commentIdList.length > 0 &&
+      (!data.commentList ||
+        typeof data.commentList !== "object" ||
+        Array.isArray(data.commentList)))
+  )
+    throw new Error("再漫画：评论列表格式异常");
+  const seen = new Set();
+  /** @type {SourceComment[]} */
+  const comments = [];
+  for (const chain of data.commentIdList) {
+    const ids = zaimanhuaText(chain).split(",").map(zaimanhuaId);
+    const commentId = ids[0];
+    if (seen.has(commentId)) continue;
+    seen.add(commentId);
+    const row = data.commentList[commentId];
+    if (
+      !row ||
+      zaimanhuaText(row.id) !== commentId ||
+      zaimanhuaText(row.obj_id) !== id ||
+      typeof row.content !== "string"
+    )
+      throw new Error("再漫画：评论数据缺失或与漫画不匹配");
+    const parents = ids
+      .slice(1)
+      .map((parentId) => data.commentList[parentId])
+      .filter((parent) => parent && zaimanhuaText(parent.obj_id) === id);
+    // Keep the existing host renderer: quote context is ordinary comment content.
+    const quotes = parents
+      .slice()
+      .reverse()
+      .map(
+        (parent) =>
+          "引用 " +
+          zaimanhuaEscapeHtml(zaimanhuaCommentAuthor(parent)) +
+          "：<br>" +
+          zaimanhuaText(parent.content),
+      );
+    const timestamp = Number(row.create_time) * 1000;
+    const liked = row.stats?.is_like ?? row.is_like;
+    comments.push({
+      id: commentId,
+      userName:
+        zaimanhuaCommentAuthor(row) +
+        (parents[0] ? " 👉 " + zaimanhuaCommentAuthor(parents[0]) : ""),
+      avatar: zaimanhuaImageUrl(row.author?.photo || row.photo),
+      content: [...quotes, row.content].join("<br><br>"),
+      ...(Number.isFinite(timestamp) && timestamp > 0 && timestamp <= 8.64e15
+        ? { time: new Date(timestamp).toISOString() }
+        : {}),
+      score: zaimanhuaCommentCount(row.stats?.like_amount ?? row.like_amount),
+      isLiked: [true, 1, "1", "true"].includes(liked),
+      replyCount: zaimanhuaCommentCount(
+        row.stats?.reply_amount ?? row.reply_amount,
+      ),
+    });
+  }
+  // Later pages report total=0 even when full. Continue until a short/empty page.
+  return {
+    comments,
+    maxPage:
+      data.commentIdList.length >= zaimanhuaCommentPageSize ? page + 1 : page,
+  };
+}
+
+/** @returns {Promise<string>} */
+async function zaimanhuaCommentSession() {
+  const token = await Hazuki.secrets.get("session");
+  if (!token)
+    throw Hazuki.error("AUTH_EXPIRED", "再漫画：请先登录再发表评论或点赞");
+  return token;
+}
+
+/** @param {string} value */
+function zaimanhuaCommentNumericId(value) {
+  const id = Number(zaimanhuaId(value));
+  if (!Number.isSafeInteger(id))
+    throw new Error("再漫画：评论 ID 超出有效范围");
+  return id;
+}
+
+/** The public composer uses comic-level type=4, including in the reader.
+ * @param {string} id @param {string | null} _subId @param {string} text
+ * @param {string | null} replyTo
+ */
+async function zaimanhuaSendComment(id, _subId, text, replyTo) {
+  const comicId = zaimanhuaCommentNumericId(id);
+  const parentId = replyTo ? zaimanhuaCommentNumericId(replyTo) : 0;
+  text = text.trim();
+  if (!text || text.length > 1000)
+    throw new Error("再漫画：评论内容应为 1～1000 个字符");
+  const token = await zaimanhuaCommentSession();
+  if (!zaimanhuaText(Hazuki.storage.get("clientId"))) {
+    const config = await zaimanhuaRequest(
+      "/api/v1/comic1/config",
+      {},
+      { anonymous: true },
+    );
+    const clientId = zaimanhuaText(config.clientId);
+    if (!clientId) throw new Error("再漫画：缺少客户端标识，请重新登录");
+    await Hazuki.storage.set("clientId", clientId);
+  }
+  await zaimanhuaApi(
+    "/app/v1/comment/create",
+    {},
+    {
+      method: "POST",
+      origin: "https://v4api.zaimanhua.com",
+      common: false,
+      token,
+      jsonBody: {
+        obj_id: comicId,
+        content: text,
+        to_comment_id: parentId,
+        type: 4,
+        mentions: [],
+      },
+    },
+  );
+}
+
+/** Only addLike is exposed by the observed website; do not invent an unlike API.
+ * @param {string} id @param {string | null} _subId
+ * @param {string} commentId @param {boolean} isLike
+ */
+async function zaimanhuaLikeComment(id, _subId, commentId, isLike) {
+  zaimanhuaId(id);
+  commentId = zaimanhuaId(commentId);
+  if (!isLike) throw new Error("再漫画：暂不支持取消点赞");
+  const token = await zaimanhuaCommentSession();
+  await zaimanhuaApi(
+    "/app/v1/comment/addLike",
+    { type: 4, commentId },
+    {
+      method: "POST",
+      token,
+    },
+  );
+}
+
 Hazuki.registerSource({
   id: "zaimanhua",
   name: "再漫画",
-  version: "1.2.0",
+  version: "1.3.1",
   apiVersion: 1,
   presentation: {
+    showComments: true,
+    commentOrders: { 1: "最新", 2: "热门" },
+    commentDefaultOrder: "1",
     buttons: [
       { id: "copyComicId", location: "comicDetailInfo" },
       { id: "relatedComics", location: "comicDetailTabs" },
@@ -981,9 +1043,9 @@ Hazuki.registerSource({
   },
   comic: {
     loadInfo: zaimanhuaDetails,
-    onReadingProgress: zaimanhuaReadingProgress,
-    loadReadingProgress: zaimanhuaLoadReadingProgress,
-    loadReadingHistory: zaimanhuaLoadReadingHistory,
+    loadComments: zaimanhuaComments,
+    sendComment: zaimanhuaSendComment,
+    likeComment: zaimanhuaLikeComment,
     loadEp: async (comicId, chapterId) => {
       comicId = zaimanhuaId(comicId);
       chapterId = zaimanhuaId(chapterId);

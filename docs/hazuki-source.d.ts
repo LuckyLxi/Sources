@@ -207,6 +207,10 @@ interface SourcePresentation {
    */
   showComments?: boolean;
   commentReplies?: boolean;
+  /** Comment order codes and localized labels, shared by comic/chapter comments. */
+  commentOrders?: Record<string, SourceText>;
+  /** Falls back to the first declared order; omitted orders hide the sort menu. */
+  commentDefaultOrder?: string;
   /** @deprecated Host no longer enables ID lookup or recommendations from this flag. */
   directComicId?: boolean;
   /** Case-insensitive full keyword match; use the first nonempty capture as the ID. */
@@ -253,8 +257,11 @@ interface HazukiSourceDefinition {
     transformImageBytes?: (bytes: Uint8Array, url: string, comicId: string, chapterId: string) => Awaitable<{bytes: Uint8Array; extension?: string}>;
     /** Provides the desktop like button and enables mobile headerStats like actions. */
     likeComic?: (id: string, isLike: boolean) => Awaitable<void>;
-    loadComments?: (id: string, subId: string | null, page: number, replyTo: string | null) => Awaitable<{comments: SourceComment[]; maxPage?: number}>;
-    loadChapterComments?: (id: string, chapterId: string, page: number, replyTo: string | null) => Awaitable<{comments: SourceComment[]; maxPage?: number}>;
+    /** Host passes the selected commentOrders code as the fifth argument, also for replies.
+     * Without declared orders the host passes ''. Older four-argument plugins remain compatible.
+     */
+    loadComments?: (id: string, subId: string | null, page: number, replyTo: string | null, order?: string) => Awaitable<{comments: SourceComment[]; maxPage?: number}>;
+    loadChapterComments?: (id: string, chapterId: string, page: number, replyTo: string | null, order?: string) => Awaitable<{comments: SourceComment[]; maxPage?: number}>;
     sendComment?: (id: string, subId: string | null, text: string, replyTo: string | null) => Awaitable<void>;
     sendChapterComment?: (id: string, chapterId: string, text: string, replyTo: string | null) => Awaitable<void>;
     likeComment?: (id: string, subId: string | null, commentId: string, isLike: boolean) => Awaitable<void>;

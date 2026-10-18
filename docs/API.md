@@ -282,6 +282,34 @@ Hazuki.registerSource({
 
 在注册对象的可选 `presentation` 中声明排序标签与默认值、是否需要登录、签到、评论回复、详情字段、画质选项和操作入口。导入时保存这些信息供应用使用，运行时也可补充。搜索排序通过 `searchOrders/searchDefaultOrder` 声明，标签支持字符串或 `{zh, en}` 语言映射；收藏排序通过 `favoriteOrders/favoriteDefaultOrder/favoriteOrderSetting` 声明；画质通过 `imageQualitySetting/imageQualityOptions/imageQualityDefault` 声明。`recreateOnStatus` 是通用的运行时重建状态列表，网站选择哪些状态放进列表。
 
+## 评论排序声明与调用
+
+插件可通过 `presentation.commentOrders` 声明评论排序编码及标签，通过 `commentDefaultOrder` 指定默认项。标签支持字符串或 `{zh, en}` 语言映射，编码必须为非空且首尾无空白的字符串。默认值缺失或无效时使用首个声明项；没有声明或声明为空时隐藏排序菜单，并向插件传递空字符串。宿主不内置站点排序编码，也不在本地重新排序主评论。
+
+```javascript
+presentation: {
+  showComments: true,
+  commentOrders: {
+    newest: {zh: '最新', en: 'Newest'},
+    popular: {zh: '热门', en: 'Popular'},
+  },
+  commentDefaultOrder: 'newest',
+},
+comic: {
+  // 插件将 order 转换成网站实际支持的请求参数，并返回对应分页。
+  loadComments: async (id, subId, page, replyTo, order = 'newest') => {
+    return fetchComments({id, subId, page, replyTo, order});
+  },
+  loadChapterComments: async (id, chapterId, page, replyTo, order = 'newest') => {
+    return fetchChapterComments({id, chapterId, page, replyTo, order});
+  },
+},
+```
+
+`fetchComments` 和 `fetchChapterComments` 为示意的插件自定义函数，返回结构仍为 `{comments, maxPage?}`。`order` 追加为第五个参数，前四个参数保持原义，旧四参数插件可继续使用。漫画评论、章节评论、加载更多及回复请求均传递当前选中编码；回复仍沿用宿主现有的时间正序展示规则。评论排序不会启用评论入口，仍需显式声明 `showComments: true`。
+
+详情页评论、独立评论页和阅读器评论共用排序菜单。切换排序后从第一页重载，清空旧分页和回复缓存，并忽略旧请求的迟到结果；刷新、发送成功后的重载，以及共用同一交互状态的嵌入/全屏页面保留当前选择。排序不写入全局偏好。新增声明后需更新或重新导入插件。
+
 ## 标签、排序与历史展示
 
 宿主按能力声明处理展示与网络规则，不按源 ID 分支。以下均为可选的 `presentation` 字段：

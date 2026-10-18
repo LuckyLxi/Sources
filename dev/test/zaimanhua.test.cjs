@@ -30,11 +30,26 @@ function respond(url) {
     });
   if (/\/lpi\/v1\/login\/(passwd|sms)$/.test(route.pathname))
     return ok({ user: { token: "test-session" } });
+  if (route.pathname === "/lpi/v1/sms/send") return ok({});
+  if (route.pathname === "/app/v1/comment/list") {
+    const name =
+      route.searchParams.get("objId") === "999999999"
+        ? "comments-empty"
+        : route.searchParams.get("sortBy") === "2"
+          ? route.searchParams.get("page") === "2"
+            ? "comments-hot2"
+            : "comments-hot"
+          : route.searchParams.get("page") === "2"
+            ? "comments2"
+            : "comments";
+    return { status: 200, body: JSON.stringify(fixture(name)) };
+  }
   if (
-    route.pathname === "/lpi/v1/sms/send" ||
-    route.pathname === "/app/v1/readingRecord/add"
+    ["/app/v1/comment/create", "/app/v1/comment/addLike"].includes(
+      route.pathname,
+    )
   )
-    return ok({});
+    return ok(null);
   if (route.pathname === "/v1/userInfo/get")
     return ok({
       userInfo: {
@@ -161,10 +176,11 @@ test("registers an API v1 source discoverable by the index generator", () => {
   const { buildIndex } = require("../scripts/update-plugin-index.cjs");
   const entry = buildIndex(ROOT).plugins.find((item) => item.id === source.id);
   assert.equal(entry.name, "再漫画");
-  assert.equal(entry.version, "1.2.0");
+  assert.equal(entry.version, "1.3.1");
   assert.equal(source.apiVersion, 1);
-  assert.equal(typeof source.comic.loadReadingProgress, "function");
-  assert.equal(typeof source.comic.loadReadingHistory, "function");
+  assert.equal(source.comic.onReadingProgress, undefined);
+  assert.equal(source.comic.loadReadingProgress, undefined);
+  assert.equal(source.comic.loadReadingHistory, undefined);
   assert.deepEqual(
     Array.from(source.account.loginMethods, (method) => method.id),
     ["password", "sms", "wechat", "qq", "weibo"],
@@ -177,7 +193,13 @@ test("registers an API v1 source discoverable by the index generator", () => {
     );
   assert.equal(source.favorites.addFolder, undefined);
   assert.equal(source.favorites.deleteFolder, undefined);
-  assert.equal(source.presentation.showComments, undefined);
+  assert.equal(source.presentation.showComments, true);
+  assert.deepEqual(plain(source.presentation.commentOrders), {
+    1: "最新",
+    2: "热门",
+  });
+  assert.equal(source.presentation.commentDefaultOrder, "1");
+  assert.notEqual(source.presentation.commentReplies, true);
   const rules = source.presentation.directComicIdRules.patterns.map(
     (pattern) => new RegExp(pattern, "i"),
   );
@@ -195,6 +217,277 @@ test("registers an API v1 source discoverable by the index generator", () => {
     rules.some((rule) => rule.test("https://example.com/80825")),
     false,
   );
+});
+
+test("public comments preserve the site's page order and quoted ancestors", async () => {
+  const { source, requests } = plugin();
+  const raw = fixture("comments").data;
+  const result = await source.comic.loadComments("80825", null, 1, null);
+  assert.equal(result.comments.length, 16);
+  assert.deepEqual(
+    Array.from(result.comments, (row) => row.id),
+    raw.commentIdList.map((chain) => chain.split(",")[0]),
+  );
+  const chain = raw.commentIdList
+    .find((value) => value.includes(","))
+    .split(",");
+  const current = raw.commentList[chain[0]];
+  const parent = raw.commentList[chain[1]];
+  const comment = result.comments.find((row) => row.id === chain[0]);
+  assert.equal(
+    comment.userName,
+    current.author.nickname + " 👉 " + parent.author.nickname,
+  );
+  assert.ok(comment.content.endsWith(current.content));
+  assert.ok(comment.content.includes(parent.content));
+  assert.equal(
+    comment.time,
+    new Date(current.create_time * 1000).toISOString(),
+  );
+  assert.equal(comment.score, current.stats.like_amount);
+  assert.equal(comment.isLiked, current.stats.is_like);
+  assert.equal(result.maxPage, 2);
+  const request = requests[0];
+  assert.equal(request.method, "GET");
+  assert.equal(request.headers.Authorization, undefined);
+  for (const [key, value] of Object.entries({
+    objId: "80825",
+    type: "4",
+    sortBy: "1",
+    size: "16",
+    page: "1",
+    top_status: "0",
+    is_goods: "0",
+  }))
+    assert.equal(request.url.searchParams.get(key), value);
+});
+
+test("popular comments use server order and retain that order while paging", async () => {
+  const { source, requests } = plugin();
+  const newest = await source.comic.loadComments("80825", null, 1, null, "1");
+  const popular = await source.comic.loadComments("80825", null, 1, null, "2");
+  const more = await source.comic.loadComments("80825", null, 2, null, "2");
+  const latestAgain = await source.comic.loadComments(
+    "80825",
+    null,
+    1,
+    null,
+    "1",
+  );
+  assert.notEqual(newest.comments[0].id, popular.comments[0].id);
+  for (const [result, name] of [
+    [popular, "comments-hot"],
+    [more, "comments-hot2"],
+  ]) {
+    assert.equal(result.comments.length, 16);
+    assert.deepEqual(
+      Array.from(result.comments, (comment) => comment.id),
+      fixture(name).data.commentIdList.map((chain) => chain.split(",")[0]),
+    );
+  }
+  assert.equal(more.maxPage, 3);
+  assert.deepEqual(plain(latestAgain), plain(newest));
+  assert.deepEqual(
+    requests.map((request) => [
+      request.url.searchParams.get("sortBy"),
+      request.url.searchParams.get("page"),
+    ]),
+    [
+      ["1", "1"],
+      ["2", "1"],
+      ["2", "2"],
+      ["1", "1"],
+    ],
+  );
+});
+
+test("empty comment order retains newest compatibility and unknown codes fail before requesting", async () => {
+  const { source, requests } = plugin();
+  await source.comic.loadComments("80825", null, 1, null, "");
+  assert.equal(requests[0].url.searchParams.get("sortBy"), "1");
+  await assert.rejects(
+    source.comic.loadComments("80825", null, 1, null, "unknown"),
+    /未知的评论排序/,
+  );
+  assert.equal(requests.length, 1);
+});
+
+test("comments continue past the server's incorrect zero total on page two", async () => {
+  const { source, requests } = plugin();
+  const second = await source.comic.loadComments("80825", null, 2, null);
+  assert.equal(fixture("comments2").data.total, 0);
+  assert.equal(second.comments.length, 16);
+  assert.equal(second.maxPage, 3);
+  assert.equal(requests[0].url.searchParams.get("page"), "2");
+  const empty = await source.comic.loadComments("999999999", null, 1, null);
+  assert.deepEqual(plain(empty), { comments: [], maxPage: 1 });
+  const end = plugin(() => ({
+    status: 200,
+    body: JSON.stringify(fixture("comments-empty")),
+  }));
+  assert.equal(
+    (await end.source.comic.loadComments("80825", null, 3, null)).maxPage,
+    3,
+  );
+});
+
+test("comments retain HTML images and escape quoted author names", async () => {
+  const raw = fixture("comments");
+  const chain = raw.data.commentIdList
+    .find((value) => value.includes(","))
+    .split(",");
+  raw.data.commentIdList = [chain.join(","), chain.join(",")];
+  raw.data.commentList[chain[0]].content =
+    '<p>你好 &amp; 世界</p><img src="https://images.zaimanhua.com/test.png">';
+  raw.data.commentList[chain[0]].stats = {
+    like_amount: 3,
+    is_like: "1",
+    reply_amount: 2,
+  };
+  raw.data.commentList[chain[1]].author.nickname = "<引用者>&";
+  const { source } = plugin(() => ({ status: 200, body: JSON.stringify(raw) }));
+  const result = await source.comic.loadComments("80825", null, 1, null);
+  assert.equal(result.comments.length, 1);
+  assert.ok(result.comments[0].content.includes("&lt;引用者&gt;&amp;"));
+  assert.ok(
+    result.comments[0].content.endsWith(raw.data.commentList[chain[0]].content),
+  );
+  assert.equal(result.comments[0].score, 3);
+  assert.equal(result.comments[0].isLiked, true);
+  assert.equal(result.comments[0].replyCount, 2);
+});
+
+test("malformed comment data fails rather than appearing as an empty page", async () => {
+  for (const mutate of [
+    (data) => {
+      delete data.commentIdList;
+    },
+    (data) => {
+      data.commentList = null;
+    },
+    (data) => {
+      data.commentIdList = ["123"];
+    },
+    (data) => {
+      data.commentList[data.commentIdList[0].split(",")[0]].obj_id = 1;
+    },
+  ]) {
+    const raw = fixture("comments");
+    mutate(raw.data);
+    const { source } = plugin(() => ({
+      status: 200,
+      body: JSON.stringify(raw),
+    }));
+    await assert.rejects(
+      source.comic.loadComments("80825", null, 1, null),
+      /评论/,
+    );
+  }
+  const { source, requests } = plugin();
+  await assert.rejects(
+    source.comic.loadComments("80825", null, 1, "533819"),
+    /独立回复列表/,
+  );
+  assert.equal(requests.length, 0);
+});
+
+test("comment creation and replies use the observed JSON API and exact parent ID", async () => {
+  const { source, requests } = plugin(null, {
+    secrets: { session: "test-session" },
+    storage: { clientId: "test-client", uid: 42 },
+  });
+  const text = '中文 &?# + "换行"\n<img> 😀';
+  await source.comic.sendComment("80825", null, "  " + text + "  ", null);
+  await source.comic.sendComment("80825", null, text, "533819");
+  assert.equal(requests.length, 2);
+  for (const [index, request] of requests.entries()) {
+    assert.equal(request.method, "POST");
+    assert.equal(request.url.origin, "https://v4api.zaimanhua.com");
+    assert.equal(request.url.pathname, "/app/v1/comment/create");
+    assert.equal(request.url.search, "");
+    assert.equal(request.headers.Authorization, "Bearer test-session");
+    assert.equal(request.headers["X-Client-ID"], "test-client");
+    assert.equal(request.headers["Content-Type"], "application/json");
+    assert.deepEqual(JSON.parse(request.body), {
+      obj_id: 80825,
+      content: text,
+      to_comment_id: index ? 533819 : 0,
+      type: 4,
+      mentions: [],
+    });
+  }
+});
+
+test("comment posting rejects absent login and invalid input before requesting", async () => {
+  const { source, requests } = plugin();
+  await assert.rejects(
+    source.comic.sendComment("80825", null, "hello", null),
+    (error) => error.code === "AUTH_EXPIRED",
+  );
+  for (const [id, text, replyTo] of [
+    ["80825", " ", null],
+    ["80825", "a".repeat(1001), null],
+    ["9007199254740993", "hello", null],
+    ["80825", "hello", "no-id"],
+  ])
+    await assert.rejects(source.comic.sendComment(id, null, text, replyTo));
+  assert.equal(requests.length, 0);
+});
+
+test("comment posting acquires a missing client ID and propagates rejected writes", async () => {
+  const { source, requests, storage } = plugin(
+    (url) => {
+      if (new URL(url).pathname === "/app/v1/comment/create")
+        return {
+          status: 200,
+          body: JSON.stringify({ errno: 400, errmsg: "发送过于频繁" }),
+        };
+    },
+    { secrets: { session: "test-session" } },
+  );
+  await assert.rejects(
+    source.comic.sendComment("80825", null, "hello", null),
+    /发送过于频繁/,
+  );
+  assert.equal(storage.get("clientId"), "test-client");
+  assert.equal(requests.length, 2);
+  assert.equal(requests[0].headers.Authorization, undefined);
+  assert.equal(requests[1].headers["X-Client-ID"], "test-client");
+  for (const failure of [
+    { status: 401, body: "" },
+    { status: 200, body: JSON.stringify({ errno: 99, errmsg: "expired" }) },
+  ]) {
+    const expired = plugin(() => failure, {
+      secrets: { session: "test-session" },
+      storage: { clientId: "test-client" },
+    });
+    await assert.rejects(
+      expired.source.comic.sendComment("80825", null, "hello", null),
+      (error) => error.code === "AUTH_EXPIRED",
+    );
+  }
+});
+
+test("comment likes use addLike and never invent a cancellation request", async () => {
+  const { source, requests } = plugin(null, {
+    secrets: { session: "test-session" },
+  });
+  await source.comic.likeComment("80825", null, "533819", true);
+  assert.equal(requests[0].method, "POST");
+  assert.equal(requests[0].url.pathname, "/app/v1/comment/addLike");
+  assert.equal(requests[0].url.searchParams.get("commentId"), "533819");
+  assert.equal(requests[0].url.searchParams.get("type"), "4");
+  await assert.rejects(
+    source.comic.likeComment("80825", null, "533819", false),
+    /不支持取消点赞/,
+  );
+  assert.equal(requests.length, 1);
+  const anonymous = plugin();
+  await assert.rejects(
+    anonymous.source.comic.likeComment("80825", null, "533819", true),
+    (error) => error.code === "AUTH_EXPIRED",
+  );
+  assert.equal(anonymous.requests.length, 0);
 });
 
 test("search encodes user input, normalizes lists and calculates total pages", async () => {
@@ -796,38 +1089,6 @@ test("profile reload and logout use the persistent session and remove plugin coo
   );
 });
 
-test("reading progress posts the actual one-based image page and requires a session", async () => {
-  const progress = {
-    comicId: "80825",
-    chapterId: "170150",
-    page: 3,
-    totalPages: 27,
-    visiblePages: [3, 4],
-    reason: "page",
-  };
-  const { source, requests } = plugin(undefined, {
-    secrets: { session: "test-session" },
-    storage: { uid: "42" },
-  });
-  await source.comic.onReadingProgress(progress);
-  assert.equal(requests.length, 1);
-  assert.equal(requests[0].method, "POST");
-  assert.equal(requests[0].url.pathname, "/app/v1/readingRecord/add");
-  assert.equal(requests[0].headers.Authorization, "Bearer test-session");
-  assert.equal(requests[0].url.searchParams.get("source"), "mh");
-  assert.deepEqual(JSON.parse(requests[0].url.searchParams.get("json")), [
-    { bizId: 80825, chapterId: 170150, page: 3 },
-  ]);
-  for (const page of [0, -1, 28, 1.5])
-    await assert.rejects(
-      source.comic.onReadingProgress({ ...progress, page }),
-      /进度数据异常/,
-    );
-  const anonymous = plugin();
-  await anonymous.source.comic.onReadingProgress(progress);
-  assert.equal(anonymous.requests.length, 0);
-});
-
 test("expired authenticated requests report AUTH_EXPIRED without logging secrets", async () => {
   const { source, logs } = plugin(
     () => ({ status: 200, body: '{"errno":99,"errmsg":"请先登录"}' }),
@@ -1043,259 +1304,4 @@ test("logged-in details reflect subscription state without blocking public readi
   assert.equal(detail.isFavorite, undefined);
   assert.equal(detail.chapters.size, 29);
   assert.equal(failed.logs.length, 1);
-});
-
-// Constructed account records using the public detail response and the account
-// center's history renderer field names. No real account history is captured.
-function readingRecord(changes = {}) {
-  return {
-    biz_id: 80825,
-    chapter_id: 170150,
-    record: 3,
-    viewing_time: 1790607951,
-    total_num: 999,
-    title: "测试漫画",
-    cover: "//images.zaimanhua.com/test-cover.jpg",
-    chapter_name: "第01话",
-    ...changes,
-  };
-}
-
-function readingDetail(record) {
-  const response = fixture("detail");
-  response.data.readingRecord = record;
-  return { status: 200, body: JSON.stringify(response) };
-}
-
-test("website progress loads the exact comic and preserves original image page numbers", async () => {
-  const { source, requests, writes } = plugin(
-    () =>
-      readingDetail(
-        readingRecord({
-          chapter_id: "170152",
-          record: "7",
-          viewing_time: "1790607951",
-        }),
-      ),
-    { secrets: { session: "test-session" } },
-  );
-  const progress = await source.comic.loadReadingProgress("80825");
-  assert.deepEqual(plain(progress), {
-    chapterId: "170152",
-    page: 7,
-    updatedAtMs: 1790607951000,
-  });
-  assert.equal(
-    progress.totalPages,
-    undefined,
-    "unverified total_num must not clamp a position",
-  );
-  assert.equal(requests.length, 1);
-  assert.equal(requests[0].method, "GET");
-  assert.equal(requests[0].url.pathname, "/api/v1/comic2/comic/detail");
-  assert.equal(requests[0].url.searchParams.get("id"), "80825");
-  assert.equal(requests[0].headers.Authorization, "Bearer test-session");
-  assert.deepEqual(
-    writes,
-    [],
-    "a cloud-read runtime must not write persistent state",
-  );
-});
-
-test("website progress re-reads the server on every call and does not use old local positions", async () => {
-  let current = readingRecord({ record: 7 });
-  const { source, requests, writes } = plugin(() => readingDetail(current), {
-    secrets: { session: "test-session" },
-    storage: { readingProgress: { chapterId: "999", page: 99 } },
-  });
-  assert.equal((await source.comic.loadReadingProgress("80825")).page, 7);
-  current = readingRecord({ chapter_id: 170152, record: 2 });
-  assert.deepEqual(plain(await source.comic.loadReadingProgress("80825")), {
-    chapterId: "170152",
-    page: 2,
-    updatedAtMs: 1790607951000,
-  });
-  current = { biz_id: 0, chapter_id: 0, record: 0, viewing_time: 0 };
-  assert.equal(await source.comic.loadReadingProgress("80825"), null);
-  assert.equal(requests.length, 3);
-  assert.deepEqual(writes, []);
-});
-
-test("only an explicit missing website record returns null", async () => {
-  for (const record of [
-    null,
-    { biz_id: 0, chapter_id: 0, record: 0 },
-    { biz_id: 80825, chapter_id: "0", record: "0" },
-  ]) {
-    const { source } = plugin(() => readingDetail(record), {
-      secrets: { session: "test-session" },
-    });
-    assert.equal(await source.comic.loadReadingProgress("80825"), null);
-  }
-  for (const record of [
-    undefined,
-    {},
-    [],
-    "invalid",
-    readingRecord({ biz_id: 1 }),
-    readingRecord({ chapter_id: 0 }),
-    readingRecord({ chapter_id: "bad" }),
-    readingRecord({ record: 0 }),
-    readingRecord({ record: 1.5 }),
-    readingRecord({ record: "9007199254740992" }),
-  ]) {
-    const { source } = plugin(() => readingDetail(record), {
-      secrets: { session: "test-session" },
-    });
-    await assert.rejects(source.comic.loadReadingProgress("80825"), /阅读进度/);
-  }
-  const response = fixture("detail");
-  response.data.comicInfo.id = 1;
-  const mismatched = plugin(
-    () => ({ status: 200, body: JSON.stringify(response) }),
-    { secrets: { session: "test-session" } },
-  );
-  await assert.rejects(
-    mismatched.source.comic.loadReadingProgress("80825"),
-    /阅读进度/,
-  );
-});
-
-test("cloud history uses pageSize and continues past short pages until the server is empty", async () => {
-  const { source, requests, writes } = plugin(
-    (url) => {
-      const page = Number(new URL(url).searchParams.get("page"));
-      return {
-        status: 200,
-        body: JSON.stringify({
-          errno: 0,
-          data: {
-            recordList:
-              page === 1
-                ? [readingRecord()]
-                : page === 2
-                  ? [
-                      readingRecord({
-                        biz_id: 63911,
-                        title: "另一部漫画",
-                        chapter_id: 23,
-                        record: 8,
-                      }),
-                    ]
-                  : null,
-          },
-        }),
-      };
-    },
-    { secrets: { session: "test-session" } },
-  );
-  const imported = [];
-  for (let page = 1; ; page++) {
-    const result = await source.comic.loadReadingHistory(page);
-    assert.equal(result.maxPage, undefined);
-    if (!result.items.length) break;
-    imported.push(...result.items);
-  }
-  assert.deepEqual(plain(imported[0]), {
-    comic: {
-      id: "80825",
-      title: "测试漫画",
-      cover: "https://images.zaimanhua.com/test-cover.jpg",
-      subTitle: "第01话",
-    },
-    progress: { chapterId: "170150", page: 3, updatedAtMs: 1790607951000 },
-  });
-  assert.equal(imported[1].comic.id, "63911");
-  assert.equal(imported[1].progress.page, 8);
-  assert.equal(requests.length, 3);
-  for (const [index, request] of requests.entries()) {
-    assert.equal(request.method, "GET");
-    assert.equal(request.url.pathname, "/app/v1/readingRecord/list");
-    assert.equal(request.url.searchParams.get("source"), "mh");
-    assert.equal(request.url.searchParams.get("page"), String(index + 1));
-    assert.equal(request.url.searchParams.get("pageSize"), "20");
-    assert.equal(request.url.searchParams.has("size"), false);
-    assert.equal(request.headers.Authorization, "Bearer test-session");
-  }
-  assert.deepEqual(writes, []);
-});
-
-test("history accepts an empty list but rejects broken pages instead of silently truncating import", async () => {
-  for (const recordList of [[], null]) {
-    const { source } = plugin(
-      () => ({
-        status: 200,
-        body: JSON.stringify({ errno: 0, data: { recordList } }),
-      }),
-      { secrets: { session: "test-session" } },
-    );
-    assert.deepEqual(plain(await source.comic.loadReadingHistory(1)), {
-      items: [],
-    });
-  }
-  for (const recordList of [
-    undefined,
-    {},
-    [null],
-    ["invalid"],
-    [readingRecord({ title: "" })],
-    [readingRecord({ biz_id: 0 })],
-    [readingRecord({ chapter_id: 0, record: 0 })],
-    [readingRecord({ record: -1 })],
-  ]) {
-    const { source } = plugin(
-      () => ({
-        status: 200,
-        body: JSON.stringify({ errno: 0, data: { recordList } }),
-      }),
-      { secrets: { session: "test-session" } },
-    );
-    await assert.rejects(source.comic.loadReadingHistory(1));
-  }
-});
-
-test("cloud progress and history require login and propagate network/authentication failures", async () => {
-  const anonymous = plugin();
-  await assert.rejects(
-    anonymous.source.comic.loadReadingProgress("80825"),
-    (error) => error.code === "AUTH_EXPIRED",
-  );
-  await assert.rejects(
-    anonymous.source.comic.loadReadingHistory(1),
-    (error) => error.code === "AUTH_EXPIRED",
-  );
-  assert.equal(anonymous.requests.length, 0);
-  for (const response of [
-    { status: 200, body: '{"errno":99,"errmsg":"请先登录"}' },
-    { status: 503, body: "maintenance" },
-    { status: 200, body: "<html>blocked</html>" },
-  ]) {
-    const { source, writes } = plugin(() => response, {
-      secrets: { session: "test-session" },
-    });
-    await assert.rejects(source.comic.loadReadingProgress("80825"));
-    await assert.rejects(source.comic.loadReadingHistory(1));
-    assert.deepEqual(writes, []);
-  }
-});
-
-test("account changes and logout cannot reuse another account's cloud position", async () => {
-  const { source, secrets, requests } = plugin(
-    (_url, headers) =>
-      readingDetail(
-        readingRecord({
-          record: headers.Authorization === "Bearer first-session" ? 3 : 9,
-        }),
-      ),
-    { secrets: { session: "first-session" } },
-  );
-  assert.equal((await source.comic.loadReadingProgress("80825")).page, 3);
-  secrets.set("session", "second-session");
-  assert.equal((await source.comic.loadReadingProgress("80825")).page, 9);
-  secrets.delete("session");
-  await assert.rejects(
-    source.comic.loadReadingProgress("80825"),
-    (error) => error.code === "AUTH_EXPIRED",
-  );
-  assert.equal(requests.length, 2);
 });

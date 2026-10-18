@@ -16,6 +16,11 @@ authorization headers or personal credentials were used or captured.
 | related.json  | `/api/v1/comic1/comic/same_list?comic_id=80825`                                                          |
 | chapter.json  | `/api/v1/comic2/chapter/detail?comic_id=80825&chapter_id=170150`                                         |
 | chapter2.json | same comic, `chapter_id=193700`                                                                          |
+| comments.json | `/app/v1/comment/list?objId=80825&sortBy=1&type=4&page=1&size=16&top_status=0&is_goods=0` |
+| comments2.json | same comment list, `page=2` (server reports `total=0` despite a full page) |
+| comments-hot.json | same comment list, `sortBy=2&page=1` (popular order) |
+| comments-hot2.json | same popular comment list, `page=2` |
+| comments-empty.json | same comment list, `objId=999999999&page=1` |
 
 The public JavaScript bundles identify these routes and the catalog/rank option
 values. Tests additionally construct malformed/error responses and chapter
@@ -23,7 +28,7 @@ ordering edge cases from these snapshots; those cases are not claimed to be
 captured server responses. Tests run offline and do not fetch the image URLs.
 
 Account config, captcha metadata, login success, user profiles, OAuth start URLs,
-and reading-record success responses used in `zaimanhua.test.cjs` are constructed
+and comment creation/like success responses used in `zaimanhua.test.cjs` are constructed
 samples based on the public desktop bundles. They are not captured account
 success responses. Credentials and tokens in those tests are synthetic strings;
 no real account information is checked in. Point coordinates are mock user input.
@@ -34,11 +39,17 @@ account center's public `788.d09de41f.js` declares `subList`/`total` and the
 `id`, `title`, `cover`, and update fields. Tests reuse public search items for the
 mock subscription pages. No real user's subscription library was captured.
 
-Cloud-reading success records in `zaimanhua.test.cjs` are constructed samples.
-The captured anonymous `detail.json` includes the real zero-valued
-`data.readingRecord` placeholder. The account center's public
-`624.2c99a1ba.js` declares the history request `source=mh`, `page`, `pageSize`,
-and response `data.recordList`; its renderer reads `biz_id`, `title`, `cover`,
-`chapter_id`, `chapter_name`, `record`, and `viewing_time`. It displays `record`
-as the page number. No real account history or successful authenticated reading
-response was captured. `total_num` is not assumed to be an image count.
+The captured anonymous `detail.json` includes a zero-valued `data.readingRecord`
+placeholder. It is not evidence of usable cloud progress. Cloud progress callbacks
+were removed in v1.3.0; the host keeps its normal local reading position.
+
+Comment list snapshots are real anonymous responses. Public desktop bundles
+`cptico.94872265.js` and `index.e1a7f684.js` expose the type=4 list, `addLike`,
+and the JSON POST to `https://v4api.zaimanhua.com/app/v1/comment/create`
+(`obj_id`, `content`, `to_comment_id`, `type`, `mentions`). Comma-separated
+`commentIdList` entries reference the current comment followed by quoted ancestors.
+The component's latest/popular tabs use `sortBy=1` and `sortBy=2` respectively.
+The popular fixtures were captured anonymously on 2026-10-18 with `size=16`.
+No real comment was sent, replied to, or liked during verification. Authenticated
+write success is mocked and has not been verified with a real account. No unlike
+endpoint or separate reply-thread endpoint has been established.
