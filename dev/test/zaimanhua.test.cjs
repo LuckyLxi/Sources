@@ -11,6 +11,45 @@ const fixture = (name) =>
   JSON.parse(fs.readFileSync(path.join(FIXTURES, name + ".json"), "utf8"));
 const plain = (value) => JSON.parse(JSON.stringify(value));
 
+// Synthetic mixed-list pages model large threads without storing account data.
+function commentRow(id, parent = 0, root = 0, extra = {}) {
+  return {
+    id,
+    obj_id: 80825,
+    content: `comment ${id}`,
+    to_comment_id: parent,
+    origin_comment_id: root,
+    author: { uid: id, nickname: `author ${id}` },
+    create_time: 1700000000 + id,
+    stats: { like_amount: 0, reply_amount: 0, is_like: false },
+    ...extra,
+  };
+}
+
+function commentData(chains, rows) {
+  return {
+    commentIdList: chains,
+    commentList: Object.fromEntries(rows.map((row) => [row.id, row])),
+    total: 0,
+  };
+}
+
+function commentPages(pages) {
+  return (url) => {
+    const route = new URL(url);
+    if (route.pathname !== "/app/v1/comment/list") return;
+    return {
+      status: 200,
+      body: JSON.stringify({
+        errno: 0,
+        data:
+          pages[Number(route.searchParams.get("page")) - 1] ||
+          commentData([], []),
+      }),
+    };
+  };
+}
+
 function respond(url) {
   const route = new URL(url);
   // Account success data is synthetic, based on the site's published fields.
@@ -88,6 +127,14 @@ function respond(url) {
           `https://account-api.zaimanhua.com/v1/${provider}/web/auth_back`,
         ),
     });
+  }
+  if (route.pathname === "/api/v1/comic2/update_list") {
+    return {
+      status: 200,
+      body: JSON.stringify(
+        fixture(route.searchParams.get("page") === "2" ? "update2" : "update"),
+      ),
+    };
   }
   if (
     route.pathname === "/api/v1/comic2/comic/detail" &&
@@ -185,7 +232,7 @@ test("registers an API v1 source discoverable by the index generator", () => {
   const { buildIndex } = require("../scripts/update-plugin-index.cjs");
   const entry = buildIndex(ROOT).plugins.find((item) => item.id === source.id);
   assert.equal(entry.name, "再漫画");
-  assert.equal(entry.version, "1.4.2");
+  assert.equal(entry.version, "1.5.1");
   assert.equal(source.apiVersion, 1);
   assert.equal(source.comic.onReadingProgress, undefined);
   assert.equal(source.comic.loadReadingProgress, undefined);
@@ -220,7 +267,7 @@ test("registers an API v1 source discoverable by the index generator", () => {
     );
   assert.equal(typeof source.account.checkInStatus, "function");
   assert.equal(typeof source.account.checkIn, "function");
-  assert.notEqual(source.presentation.commentReplies, true);
+  assert.equal(source.presentation.commentReplies, true);
   const rules = source.presentation.directComicIdRules.patterns.map(
     (pattern) => new RegExp(pattern, "i"),
   );
@@ -453,89 +500,364 @@ test("check-in handles expired sessions and does not post after an account chang
   assert.equal(state.requests.length, 1);
 });
 
-test("public comments preserve the site's page order and quoted ancestors", async () => {
+test("mixed public comments become roots with native replies", async () => {
   const { source, requests } = plugin();
   const raw = fixture("comments").data;
   const result = await source.comic.loadComments("80825", null, 1, null);
-  assert.equal(result.comments.length, 16);
+  const roots = [
+    ...new Set(raw.commentIdList.map((chain) => chain.split(",").at(-1))),
+  ];
   assert.deepEqual(
     Array.from(result.comments, (row) => row.id),
-    raw.commentIdList.map((chain) => chain.split(",")[0]),
+    roots,
   );
-  const chain = raw.commentIdList
-    .find((value) => value.includes(","))
-    .split(",");
-  const current = raw.commentList[chain[0]];
-  const parent = raw.commentList[chain[1]];
-  const comment = result.comments.find((row) => row.id === chain[0]);
+  assert.equal(result.maxPage, 1);
+  const rootId = roots[0];
+  assert.equal(result.comments[0].content, raw.commentList[rootId].content);
   assert.equal(
-    comment.userName,
-    current.author.nickname + " 👉 " + parent.author.nickname,
+    result.comments[0].userName,
+    raw.commentList[rootId].author.nickname,
   );
-  assert.ok(comment.content.endsWith(current.content));
-  assert.ok(comment.content.includes(parent.content));
+  const replies = await source.comic.loadComments("80825", null, 1, rootId);
+  const chain = raw.commentIdList[0].split(",");
+  assert.deepEqual(
+    new Set(Array.from(replies.comments, (row) => row.id)),
+    new Set(chain.slice(0, -1)),
+  );
+  const current = replies.comments.find((row) => row.id === chain[0]);
+  assert.equal(current.content, raw.commentList[chain[0]].content);
   assert.equal(
-    comment.time,
-    new Date(current.create_time * 1000).toISOString(),
+    current.userName,
+    raw.commentList[chain[0]].author.nickname +
+      " 👉 " +
+      raw.commentList[chain[1]].author.nickname,
   );
-  assert.equal(comment.score, current.stats.like_amount);
-  assert.equal(comment.isLiked, current.stats.is_like);
-  assert.equal(result.maxPage, 2);
-  const request = requests[0];
-  assert.equal(request.method, "GET");
-  assert.equal(request.headers.Authorization, undefined);
+  assert.equal(
+    current.time,
+    new Date(raw.commentList[chain[0]].create_time * 1000).toISOString(),
+  );
+  assert.equal(current.score, raw.commentList[chain[0]].stats.like_amount);
+  assert.equal(current.isLiked, raw.commentList[chain[0]].stats.is_like);
+  assert.equal(requests.length, 1);
+  assert.equal(requests[0].headers.Authorization, undefined);
   for (const [key, value] of Object.entries({
     objId: "80825",
     type: "4",
     sortBy: "1",
-    size: "16",
+    size: "100",
     page: "1",
     top_status: "0",
     is_goods: "0",
   }))
-    assert.equal(request.url.searchParams.get(key), value);
+    assert.equal(requests[0].url.searchParams.get(key), value);
 });
 
-test("popular comments use server order and retain that order while paging", async () => {
-  const { source, requests } = plugin();
-  const newest = await source.comic.loadComments("80825", null, 1, null, "1");
-  const popular = await source.comic.loadComments("80825", null, 1, null, "2");
-  const more = await source.comic.loadComments("80825", null, 2, null, "2");
-  const latestAgain = await source.comic.loadComments(
-    "80825",
-    null,
-    1,
-    null,
-    "1",
+test("self replies stay under the original and nested replies keep their target", async () => {
+  const author = { uid: 42, nickname: "LuckyLxi" };
+  const rows = [
+    commentRow(1, 0, 0, {
+      author,
+      content: "可爱",
+      stats: { reply_amount: 1, like_amount: 1, is_like: true },
+    }),
+    commentRow(2, 1, 1, { author, content: "😋" }),
+    commentRow(3, 2, 1, { author, content: "再回复" }),
+    commentRow(4),
+  ];
+  const { source, requests } = plugin(
+    commentPages([commentData(["3,2,1", "2,1", "4", "1"], rows)]),
+    {
+      secrets: { session: "test-session" },
+      storage: { clientId: "test-client" },
+    },
   );
-  assert.notEqual(newest.comments[0].id, popular.comments[0].id);
+  const main = await source.comic.loadComments("80825", null, 1, null);
+  assert.deepEqual(
+    Array.from(main.comments, (row) => row.id),
+    ["1", "4"],
+  );
+  assert.equal(main.comments[0].content, "可爱");
+  assert.equal(main.comments[0].replyCount, 2);
+  assert.equal(main.comments[0].isLiked, true);
+  assert.equal(main.comments[0].score, 1);
+  const replies = await source.comic.loadComments("80825", null, 1, "1");
+  assert.deepEqual(
+    new Set(Array.from(replies.comments, (row) => row.content)),
+    new Set(["再回复", "😋"]),
+  );
+  assert.ok(
+    replies.comments.every((row) => row.userName === "LuckyLxi 👉 LuckyLxi"),
+  );
+  const nested = await source.comic.loadComments("80825", null, 1, "2");
+  assert.deepEqual(
+    Array.from(nested.comments, (row) => row.id),
+    ["3"],
+  );
+  await source.comic.sendComment("80825", null, "回复楼中楼", "2");
+  assert.equal(JSON.parse(requests.at(-1).body).to_comment_id, 2);
+});
+
+test("latest and popular preserve thread encounter order with separate snapshots", async () => {
+  const { source, requests } = plugin();
+  const latest = await source.comic.loadComments("80825", null, 1, null, "1");
+  const hot = await source.comic.loadComments("80825", null, 1, null, "2");
   for (const [result, name] of [
-    [popular, "comments-hot"],
-    [more, "comments-hot2"],
+    [latest, "comments"],
+    [hot, "comments-hot"],
   ]) {
-    assert.equal(result.comments.length, 16);
+    const expected = [
+      ...new Set(
+        fixture(name).data.commentIdList.map((chain) =>
+          chain.split(",").at(-1),
+        ),
+      ),
+    ];
     assert.deepEqual(
-      Array.from(result.comments, (comment) => comment.id),
-      fixture(name).data.commentIdList.map((chain) => chain.split(",")[0]),
+      Array.from(result.comments, (row) => row.id),
+      expected,
     );
   }
-  assert.equal(more.maxPage, 3);
-  assert.deepEqual(plain(latestAgain), plain(newest));
+  assert.notEqual(latest.comments[0].id, hot.comments[0].id);
+  await source.comic.loadComments("80825", null, 1, latest.comments[0].id, "1");
+  await source.comic.loadComments("80825", null, 1, hot.comments[0].id, "2");
   assert.deepEqual(
-    requests.map((request) => [
-      request.url.searchParams.get("sortBy"),
-      request.url.searchParams.get("page"),
-    ]),
-    [
-      ["1", "1"],
-      ["2", "1"],
-      ["2", "2"],
-      ["1", "1"],
-    ],
+    plain(await source.comic.loadComments("80825", null, 1, null, "1")),
+    plain(latest),
+  );
+  assert.deepEqual(
+    requests.map((row) => row.url.searchParams.get("sortBy")),
+    ["1", "2", "1"],
   );
 });
 
-test("empty comment order retains newest compatibility and unknown codes fail before requesting", async () => {
+test("main pagination skips reply-only raw pages and never repeats roots", async () => {
+  const replies = Array.from({ length: 200 }, (_, i) =>
+    commentRow(i + 2, 1, 1),
+  );
+  const roots = Array.from({ length: 20 }, (_, i) => commentRow(i + 300));
+  const pages = [
+    commentData(
+      replies.slice(0, 100).map((row) => `${row.id},1`),
+      [commentRow(1), ...replies.slice(0, 100)],
+    ),
+    commentData(
+      replies.slice(100).map((row) => `${row.id},1`),
+      [commentRow(1), ...replies.slice(100)],
+    ),
+    commentData(
+      ["1", ...roots.map((row) => String(row.id))],
+      [commentRow(1), ...roots],
+    ),
+  ];
+  const { source, requests } = plugin(commentPages(pages));
+  const first = await source.comic.loadComments("80825", null, 1, null);
+  const second = await source.comic.loadComments("80825", null, 2, null);
+  assert.equal(first.comments.length, 16);
+  assert.equal(first.maxPage, 2);
+  assert.equal(second.comments.length, 5);
+  assert.equal(second.maxPage, 2);
+  assert.deepEqual(
+    Array.from([...first.comments, ...second.comments], (row) => row.id),
+    ["1", ...roots.map((row) => String(row.id))],
+  );
+  assert.deepEqual(
+    requests.map((row) => row.url.searchParams.get("page")),
+    ["1", "2", "3"],
+  );
+  assert.ok(pages.every((page) => page.total === 0));
+  const seen = [];
+  let page = 1,
+    result;
+  do {
+    result = await source.comic.loadComments("80825", null, page, "1");
+    seen.push(...Array.from(result.comments, (row) => row.id));
+  } while (page++ < result.maxPage);
+  assert.equal(seen.length, 200);
+  assert.equal(new Set(seen).size, 200);
+  assert.equal(requests.length, 3);
+});
+
+test("expansion finds later-page replies and concurrent expansions share requests", async () => {
+  const roots = Array.from({ length: 100 }, (_, i) => commentRow(i + 1));
+  const response = commentPages([
+    commentData(
+      roots.map((row) => String(row.id)),
+      roots,
+    ),
+    commentData(
+      ["201,1", "202,2", "203,201,1"],
+      [
+        ...roots.slice(0, 2),
+        commentRow(201, 1, 1),
+        commentRow(202, 2, 2),
+        commentRow(203, 201, 1),
+      ],
+    ),
+  ]);
+  const { source, requests } = plugin(async (...args) => {
+    await new Promise((resolve) => setImmediate(resolve));
+    return response(...args);
+  });
+  await source.comic.loadComments("80825", null, 1, null);
+  const [one, two] = await Promise.all([
+    source.comic.loadComments("80825", null, 1, "1"),
+    source.comic.loadComments("80825", null, 1, "2"),
+  ]);
+  assert.deepEqual(
+    Array.from(one.comments, (row) => row.id),
+    ["201", "203"],
+  );
+  assert.deepEqual(
+    Array.from(two.comments, (row) => row.id),
+    ["202"],
+  );
+  assert.equal(requests.length, 2);
+  assert.equal(one.comments[1].userName, "author 203 👉 author 201");
+  assert.deepEqual(
+    plain(await source.comic.loadComments("80825", null, 1, "999")),
+    { comments: [], maxPage: 1 },
+  );
+});
+
+test("reply pagination fetches further batches after the first logical page", async () => {
+  const roots = Array.from({ length: 80 }, (_, i) => commentRow(i + 1));
+  const replies = Array.from({ length: 25 }, (_, i) =>
+    commentRow(i + 201, 1, 1),
+  );
+  const first = [
+    ...roots.map((row) => String(row.id)),
+    ...replies.slice(0, 20).map((row) => `${row.id},1`),
+  ];
+  const { source, requests } = plugin(
+    commentPages([
+      commentData(first, [...roots, ...replies.slice(0, 20)]),
+      commentData(
+        replies.slice(20).map((row) => `${row.id},1`),
+        [roots[0], ...replies.slice(20)],
+      ),
+    ]),
+  );
+  const one = await source.comic.loadComments("80825", null, 1, "1");
+  assert.equal(one.comments.length, 16);
+  assert.equal(one.maxPage, 2);
+  assert.equal(requests.length, 1);
+  const two = await source.comic.loadComments("80825", null, 2, "1");
+  assert.equal(two.comments.length, 9);
+  assert.equal(two.maxPage, 2);
+  assert.equal(requests.length, 2);
+  assert.equal(
+    new Set([...one.comments, ...two.comments].map((row) => row.id)).size,
+    25,
+  );
+});
+
+test("refresh, writes and login changes invalidate snapshots", async () => {
+  let content = "old";
+  const { source, requests, secrets } = plugin(
+    (url) =>
+      commentPages([
+        commentData(
+          ["2,1"],
+          [commentRow(1, 0, 0, { content }), commentRow(2, 1, 1, { content })],
+        ),
+      ])(url),
+    {
+      secrets: { session: "test-session" },
+      storage: { clientId: "test-client" },
+    },
+  );
+  await source.comic.loadComments("80825", null, 1, null);
+  content = "refreshed";
+  assert.equal(
+    (await source.comic.loadComments("80825", null, 1, null)).comments[0]
+      .content,
+    content,
+  );
+  await source.comic.sendComment("80825", null, "new", "1");
+  content = "after write";
+  assert.equal(
+    (await source.comic.loadComments("80825", null, 1, "1")).comments[0]
+      .content,
+    content,
+  );
+  await source.comic.likeComment("80825", null, "1", true);
+  content = "after like";
+  assert.equal(
+    (await source.comic.loadComments("80825", null, 1, "1")).comments[0]
+      .content,
+    content,
+  );
+  secrets.set("session", "other-session");
+  content = "other account";
+  assert.equal(
+    (await source.comic.loadComments("80825", null, 1, "1")).comments[0]
+      .content,
+    content,
+  );
+  assert.equal(
+    requests.filter((row) => row.url.pathname.endsWith("/list")).length,
+    5,
+  );
+});
+
+test("HTML bodies stay intact without quoted ancestors", async () => {
+  const html =
+    '<p>你好 &amp; 世界</p><img src="https://images.zaimanhua.com/test.png">';
+  const rows = [
+    commentRow(1, 0, 0, { author: { nickname: "<引用者>&" } }),
+    commentRow(2, 1, 1, {
+      content: html,
+      stats: { like_amount: 3, is_like: "1", reply_amount: 2 },
+    }),
+  ];
+  const { source } = plugin(commentPages([commentData(["2,1", "2,1"], rows)]));
+  const result = await source.comic.loadComments("80825", null, 1, "1");
+  assert.equal(result.comments.length, 1);
+  assert.equal(result.comments[0].content, html);
+  assert.equal(result.comments[0].userName, "author 2 👉 <引用者>&");
+  assert.equal(result.comments[0].score, 3);
+  assert.equal(result.comments[0].isLiked, true);
+});
+
+test("deleted ancestors keep surviving replies connected", async () => {
+  const { source } = plugin(
+    commentPages([
+      commentData(
+        ["4,3,2,1", "2,1"],
+        [commentRow(1), commentRow(2, 1, 1), commentRow(4, 3, 1)],
+      ),
+    ]),
+  );
+  assert.deepEqual(
+    Array.from(
+      (await source.comic.loadComments("80825", null, 1, null)).comments,
+      (row) => row.id,
+    ),
+    ["1"],
+  );
+  const replies = await source.comic.loadComments("80825", null, 1, "1");
+  assert.deepEqual(
+    new Set(Array.from(replies.comments, (row) => row.id)),
+    new Set(["2", "4"]),
+  );
+  const orphan = plugin(
+    commentPages([
+      commentData(["4,2,1"], [commentRow(2, 1, 1), commentRow(4, 2, 1)]),
+    ]),
+  );
+  assert.equal(
+    (await orphan.source.comic.loadComments("80825", null, 1, null)).comments[0]
+      .id,
+    "2",
+  );
+  assert.equal(
+    (await orphan.source.comic.loadComments("80825", null, 1, "2")).comments[0]
+      .id,
+    "4",
+  );
+});
+
+test("empty results and invalid comment arguments are handled explicitly", async () => {
   const { source, requests } = plugin();
   await source.comic.loadComments("80825", null, 1, null, "");
   assert.equal(requests[0].url.searchParams.get("sortBy"), "1");
@@ -543,55 +865,15 @@ test("empty comment order retains newest compatibility and unknown codes fail be
     source.comic.loadComments("80825", null, 1, null, "unknown"),
     /未知的评论排序/,
   );
+  await assert.rejects(source.comic.loadComments("80825", null, 1, "bad-id"));
   assert.equal(requests.length, 1);
-});
-
-test("comments continue past the server's incorrect zero total on page two", async () => {
-  const { source, requests } = plugin();
-  const second = await source.comic.loadComments("80825", null, 2, null);
-  assert.equal(fixture("comments2").data.total, 0);
-  assert.equal(second.comments.length, 16);
-  assert.equal(second.maxPage, 3);
-  assert.equal(requests[0].url.searchParams.get("page"), "2");
-  const empty = await source.comic.loadComments("999999999", null, 1, null);
-  assert.deepEqual(plain(empty), { comments: [], maxPage: 1 });
-  const end = plugin(() => ({
-    status: 200,
-    body: JSON.stringify(fixture("comments-empty")),
-  }));
-  assert.equal(
-    (await end.source.comic.loadComments("80825", null, 3, null)).maxPage,
-    3,
+  assert.deepEqual(
+    plain(await source.comic.loadComments("999999999", null, 1, null)),
+    { comments: [], maxPage: 1 },
   );
 });
 
-test("comments retain HTML images and escape quoted author names", async () => {
-  const raw = fixture("comments");
-  const chain = raw.data.commentIdList
-    .find((value) => value.includes(","))
-    .split(",");
-  raw.data.commentIdList = [chain.join(","), chain.join(",")];
-  raw.data.commentList[chain[0]].content =
-    '<p>你好 &amp; 世界</p><img src="https://images.zaimanhua.com/test.png">';
-  raw.data.commentList[chain[0]].stats = {
-    like_amount: 3,
-    is_like: "1",
-    reply_amount: 2,
-  };
-  raw.data.commentList[chain[1]].author.nickname = "<引用者>&";
-  const { source } = plugin(() => ({ status: 200, body: JSON.stringify(raw) }));
-  const result = await source.comic.loadComments("80825", null, 1, null);
-  assert.equal(result.comments.length, 1);
-  assert.ok(result.comments[0].content.includes("&lt;引用者&gt;&amp;"));
-  assert.ok(
-    result.comments[0].content.endsWith(raw.data.commentList[chain[0]].content),
-  );
-  assert.equal(result.comments[0].score, 3);
-  assert.equal(result.comments[0].isLiked, true);
-  assert.equal(result.comments[0].replyCount, 2);
-});
-
-test("malformed comment data fails rather than appearing as an empty page", async () => {
+test("malformed batches fail atomically and can be retried", async () => {
   for (const mutate of [
     (data) => {
       delete data.commentIdList;
@@ -605,6 +887,12 @@ test("malformed comment data fails rather than appearing as an empty page", asyn
     (data) => {
       data.commentList[data.commentIdList[0].split(",")[0]].obj_id = 1;
     },
+    (data) => {
+      data.commentList[data.commentIdList[0].split(",").at(-1)].obj_id = 1;
+    },
+    (data) => {
+      data.commentIdList = ["1,1"];
+    },
   ]) {
     const raw = fixture("comments");
     mutate(raw.data);
@@ -617,12 +905,54 @@ test("malformed comment data fails rather than appearing as an empty page", asyn
       /评论/,
     );
   }
-  const { source, requests } = plugin();
-  await assert.rejects(
-    source.comic.loadComments("80825", null, 1, "533819"),
-    /独立回复列表/,
+  const roots = Array.from({ length: 100 }, (_, i) => commentRow(i + 1));
+  let failed = false;
+  const route = commentPages([
+    commentData(
+      roots.map((row) => String(row.id)),
+      roots,
+    ),
+  ]);
+  const state = plugin((url) => {
+    if (new URL(url).searchParams.get("page") === "2" && !failed) {
+      failed = true;
+      return {
+        status: 200,
+        body: JSON.stringify({
+          errno: 0,
+          data: {
+            commentIdList: ["2,1", "bad-id"],
+            commentList: { 1: roots[0], 2: commentRow(2, 1, 1) },
+          },
+        }),
+      };
+    }
+    return route(url);
+  });
+  await state.source.comic.loadComments("80825", null, 1, null);
+  await assert.rejects(state.source.comic.loadComments("80825", null, 1, "1"));
+  assert.deepEqual(
+    plain(await state.source.comic.loadComments("80825", null, 1, "1")),
+    { comments: [], maxPage: 1 },
   );
-  assert.equal(requests.length, 0);
+  assert.deepEqual(
+    state.requests.map((row) => row.url.searchParams.get("page")),
+    ["1", "2", "2"],
+  );
+});
+
+test("repeated full pages fail instead of scanning forever", async () => {
+  const rows = Array.from({ length: 100 }, (_, i) => commentRow(i + 2, 1, 1));
+  const data = commentData(
+    rows.map((row) => `${row.id},1`),
+    [commentRow(1), ...rows],
+  );
+  const { source, requests } = plugin(commentPages([data, data]));
+  await assert.rejects(
+    source.comic.loadComments("80825", null, 1, null),
+    /分页未前进/,
+  );
+  assert.equal(requests.length, 2);
 });
 
 test("comment creation and replies use the observed JSON API and exact parent ID", async () => {
@@ -800,9 +1130,13 @@ test("home, updates and recommendations preserve the public site lists", async (
   const { source, requests } = plugin();
   const sections = await source.explore[0].load();
   const home = fixture("home").data.data;
-  assert.equal(sections.精品力荐.length, home.recList.length);
-  assert.equal(sections.最新更新.length, home.updateList.length);
-  assert.equal(sections.本周排行[0].id, String(home.weekRankList[0].comic_id));
+  assert.deepEqual(
+    Array.from(sections, (section) => section.title),
+    ["精品力荐", "最新更新", "本周排行", "本月排行"],
+  );
+  assert.equal(sections[0].comics.length, home.recList.length);
+  assert.equal(sections[1].comics.length, home.updateList.length);
+  assert.equal(sections[2].comics[0].id, String(home.weekRankList[0].comic_id));
   const banners = await source.dailyRecommendation.load();
   assert.equal(banners.length, home.bannerList.length);
   const comics = fixture("banner-comics");
@@ -830,6 +1164,55 @@ test("home, updates and recommendations preserve the public site lists", async (
   assert.equal(requests.at(-1).url.searchParams.has("firstLetter"), false);
   const ranks = await source.explore[2].load(1);
   assert.equal(ranks.maxPage, 5);
+});
+
+test("home update preview links to the complete paginated update list", async () => {
+  const { source, requests } = plugin();
+  assert.equal(source.explore[0].type, "multiPartPage");
+  const sections = await source.explore[0].load(null);
+  const preview = sections.find((section) => section.title === "最新更新");
+  assert.equal(preview.viewMore, "explore:1");
+  const target = source.explore[Number(preview.viewMore.split(":")[1])];
+  assert.equal(target.title, preview.title);
+  assert.equal(target.type, "multiPageComicList");
+  const first = await target.load(1);
+  const second = await target.load(2);
+  for (const [result, name] of [
+    [first, "update"],
+    [second, "update2"],
+  ]) {
+    assert.deepEqual(
+      Array.from(result.comics, (comic) => comic.id),
+      fixture(name).data.comicList.map((comic) => String(comic.id)),
+    );
+    assert.equal(result.maxPage, Math.ceil(fixture(name).data.totalNum / 20));
+  }
+  assert.ok(first.comics.length > preview.comics.length);
+  assert.equal(
+    new Set([...first.comics, ...second.comics].map((comic) => comic.id)).size,
+    40,
+  );
+  assert.deepEqual(
+    requests
+      .slice(1)
+      .map((row) => [
+        row.url.pathname,
+        row.url.searchParams.get("page"),
+        row.url.searchParams.get("size"),
+      ]),
+    [
+      ["/api/v1/comic2/update_list", "1", "20"],
+      ["/api/v1/comic2/update_list", "2", "20"],
+    ],
+  );
+  const end = plugin(() => ({
+    status: 200,
+    body: JSON.stringify({ errno: 0, data: { comicList: [], totalNum: 0 } }),
+  }));
+  assert.deepEqual(plain(await end.source.explore[1].load(1)), {
+    comics: [],
+    maxPage: 1,
+  });
 });
 
 test("banners preserve more than seven promotions and fetch each target only once", async () => {

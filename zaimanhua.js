@@ -24,6 +24,9 @@ const zaimanhuaUserCenterOrigin = "https://i.zaimanhua.com";
 const zaimanhuaPageSize = 20;
 // The host comments gateway displays 16 entries per page.
 const zaimanhuaCommentPageSize = 16;
+// The mixed website list accepts at most 100 records per request. Fetch batches
+// independently of host pages so reply-only pages cannot stop main pagination.
+const zaimanhuaCommentBatchSize = 100;
 const zaimanhuaUserAgent =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36";
 
@@ -834,39 +837,40 @@ function zaimanhuaCommentAuthor(row) {
   return zaimanhuaText(row.author?.nickname || row.nickname) || "匿名用户";
 }
 
-/** @param {string} value */
-function zaimanhuaEscapeHtml(value) {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
-}
-
 /** @param {unknown} value */
 function zaimanhuaCommentCount(value) {
   const count = Number(value);
   return Number.isSafeInteger(count) && count >= 0 ? count : 0;
 }
 
-/** The site's comma-separated IDs are current comment, parent, older ancestors.
- * Map entries alone are not a page: they include quoted comments from other pages.
- * @param {string} id @param {string | null} _subId @param {number} page
- * @param {string | null} replyTo @param {string} [order]
- * @returns {Promise<{comments: SourceComment[], maxPage: number}>}
+/** @typedef {{id: string, sortBy: string, session: string | null,
+ * roots: string[], rows: Map<string, ZaimanhuaData>,
+ * parents: Map<string, string>, rootIds: Map<string, string>,
+ * threads: Map<string, Set<string>>, listed: Set<string>,
+ * nextPage: number, done: boolean, pending: Promise<void> | null}} ZaimanhuaCommentIndex
  */
-async function zaimanhuaComments(id, _subId, page, replyTo, order = "1") {
-  id = zaimanhuaId(id);
-  if (replyTo)
-    throw new Error("再漫画：回复随漫画评论展示，不支持独立回复列表");
-  const sortBy = order || "1";
-  if (!["1", "2"].includes(sortBy)) throw new Error("再漫画：未知的评论排序");
-  page = zaimanhuaPageNumber(page);
+/** @type {Map<string, ZaimanhuaCommentIndex>} */
+const zaimanhuaCommentIndexes = new Map();
+
+/** @param {string} id */
+function zaimanhuaClearComments(id) {
+  for (const [key, index] of zaimanhuaCommentIndexes) {
+    if (index.id === id) zaimanhuaCommentIndexes.delete(key);
+  }
+}
+
+/** The comma-separated IDs are current, parent, then older ancestors. Only
+ * listed chains define order; map entries also contain context from other pages.
+ * Validate the batch before mutating the index so a failed page can be retried.
+ * @param {ZaimanhuaCommentIndex} index
+ */
+async function zaimanhuaReadCommentBatch(index) {
   const data = await zaimanhuaRequest("/app/v1/comment/list", {
-    objId: id,
-    sortBy,
+    objId: index.id,
+    sortBy: index.sortBy,
     type: 4,
-    page,
-    size: zaimanhuaCommentPageSize,
+    page: index.nextPage,
+    size: zaimanhuaCommentBatchSize,
     top_status: 0,
     is_goods: 0,
   });
@@ -878,61 +882,155 @@ async function zaimanhuaComments(id, _subId, page, replyTo, order = "1") {
         Array.isArray(data.commentList)))
   )
     throw new Error("再漫画：评论列表格式异常");
-  const seen = new Set();
-  /** @type {SourceComment[]} */
-  const comments = [];
-  for (const chain of data.commentIdList) {
+  const chains = data.commentIdList.map((/** @type {unknown} */ chain) => {
     const ids = zaimanhuaText(chain).split(",").map(zaimanhuaId);
-    const commentId = ids[0];
-    if (seen.has(commentId)) continue;
-    seen.add(commentId);
-    const row = data.commentList[commentId];
-    if (
-      !row ||
-      zaimanhuaText(row.id) !== commentId ||
-      zaimanhuaText(row.obj_id) !== id ||
-      typeof row.content !== "string"
-    )
-      throw new Error("再漫画：评论数据缺失或与漫画不匹配");
-    const parents = ids
-      .slice(1)
-      .map((parentId) => data.commentList[parentId])
-      .filter((parent) => parent && zaimanhuaText(parent.obj_id) === id);
-    // Keep the existing host renderer: quote context is ordinary comment content.
-    const quotes = parents
-      .slice()
-      .reverse()
-      .map(
-        (parent) =>
-          "引用 " +
-          zaimanhuaEscapeHtml(zaimanhuaCommentAuthor(parent)) +
-          "：<br>" +
-          zaimanhuaText(parent.content),
-      );
-    const timestamp = Number(row.create_time) * 1000;
-    const liked = row.stats?.is_like ?? row.is_like;
-    comments.push({
-      id: commentId,
-      userName:
-        zaimanhuaCommentAuthor(row) +
-        (parents[0] ? " 👉 " + zaimanhuaCommentAuthor(parents[0]) : ""),
-      avatar: zaimanhuaImageUrl(row.author?.photo || row.photo),
-      content: [...quotes, row.content].join("<br><br>"),
-      ...(Number.isFinite(timestamp) && timestamp > 0 && timestamp <= 8.64e15
-        ? { time: new Date(timestamp).toISOString() }
-        : {}),
-      score: zaimanhuaCommentCount(row.stats?.like_amount ?? row.like_amount),
-      isLiked: [true, 1, "1", "true"].includes(liked),
-      replyCount: zaimanhuaCommentCount(
-        row.stats?.reply_amount ?? row.reply_amount,
-      ),
+    if (new Set(ids).size !== ids.length)
+      throw new Error("再漫画：评论引用关系异常");
+    for (const [position, commentId] of ids.entries()) {
+      const row = data.commentList[commentId];
+      // A deleted ancestor may be absent. Keep surviving comments in its thread.
+      if (!row && position > 0) continue;
+      if (
+        !row ||
+        zaimanhuaText(row.id) !== commentId ||
+        zaimanhuaText(row.obj_id) !== index.id ||
+        typeof row.content !== "string"
+      )
+        throw new Error("再漫画：评论数据缺失或与漫画不匹配");
+    }
+    return ids;
+  });
+  if (
+    chains.length >= zaimanhuaCommentBatchSize &&
+    chains.every((/** @type {string[]} */ ids) => index.listed.has(ids[0]))
+  )
+    throw new Error("再漫画：评论分页未前进，请刷新后重试");
+  for (const ids of chains) {
+    index.listed.add(ids[0]);
+    // Use the oldest surviving ancestor when the root has been deleted.
+    const surviving = ids.filter(
+      (/** @type {string} */ commentId) => data.commentList[commentId],
+    );
+    const rootId = surviving[surviving.length - 1];
+    if (!index.threads.has(rootId)) {
+      index.roots.push(rootId);
+      index.threads.set(rootId, new Set());
+    }
+    for (const [position, commentId] of ids.entries()) {
+      const row = data.commentList[commentId];
+      index.parents.set(commentId, ids[position + 1] || "");
+      if (!row) continue;
+      index.rows.set(commentId, row);
+      index.rootIds.set(commentId, rootId);
+      if (commentId !== rootId) index.threads.get(rootId)?.add(commentId);
+    }
+  }
+  index.nextPage++;
+  // Later pages can report total=0 even when full. Never use total to stop.
+  index.done = chains.length < zaimanhuaCommentBatchSize;
+}
+
+/** @param {ZaimanhuaCommentIndex} index */
+async function zaimanhuaNextCommentBatch(index) {
+  if (!index.pending) {
+    index.pending = zaimanhuaReadCommentBatch(index).finally(() => {
+      index.pending = null;
     });
   }
-  // Later pages report total=0 even when full. Continue until a short/empty page.
+  await index.pending;
+}
+
+/** @param {ZaimanhuaCommentIndex} index @param {string} replyTo */
+function zaimanhuaThreadComments(index, replyTo) {
+  const rootId = index.rootIds.get(replyTo) || replyTo;
+  return Array.from(index.threads.get(rootId) || []).filter((commentId) => {
+    const seen = new Set([commentId]);
+    let parent = index.parents.get(commentId);
+    while (parent && !seen.has(parent)) {
+      if (parent === replyTo) return true;
+      seen.add(parent);
+      parent = index.parents.get(parent);
+    }
+    return false;
+  });
+}
+
+/** @param {ZaimanhuaCommentIndex} index @param {string} commentId
+ * @param {boolean} reply @returns {SourceComment}
+ */
+function zaimanhuaSourceComment(index, commentId, reply) {
+  const row = /** @type {ZaimanhuaData} */ (index.rows.get(commentId));
+  const parent = index.rows.get(index.parents.get(commentId) || "");
+  const timestamp = Number(row.create_time) * 1000;
+  const liked = row.stats?.is_like ?? row.is_like;
   return {
-    comments,
-    maxPage:
-      data.commentIdList.length >= zaimanhuaCommentPageSize ? page + 1 : page,
+    id: commentId,
+    userName:
+      zaimanhuaCommentAuthor(row) +
+      (reply && parent ? " 👉 " + zaimanhuaCommentAuthor(parent) : ""),
+    avatar: zaimanhuaImageUrl(row.author?.photo || row.photo),
+    content: row.content,
+    ...(Number.isFinite(timestamp) && timestamp > 0 && timestamp <= 8.64e15
+      ? { time: new Date(timestamp).toISOString() }
+      : {}),
+    score: zaimanhuaCommentCount(row.stats?.like_amount ?? row.like_amount),
+    isLiked: [true, 1, "1", "true"].includes(liked),
+    replyCount: Math.max(
+      zaimanhuaCommentCount(row.stats?.reply_amount ?? row.reply_amount),
+      index.threads.get(commentId)?.size || 0,
+    ),
+  };
+}
+
+/** Group the site's mixed list into native host threads. Fetch enough raw pages
+ * for each logical page, including when whole raw pages contain only replies.
+ * @param {string} id @param {string | null} _subId @param {number} page
+ * @param {string | null} replyTo @param {string} [order]
+ * @returns {Promise<{comments: SourceComment[], maxPage: number}>}
+ */
+async function zaimanhuaComments(id, _subId, page, replyTo, order = "1") {
+  id = zaimanhuaId(id);
+  if (replyTo !== null) replyTo = zaimanhuaId(replyTo);
+  const sortBy = order || "1";
+  if (!["1", "2"].includes(sortBy)) throw new Error("再漫画：未知的评论排序");
+  page = zaimanhuaPageNumber(page);
+  const key = id + ":" + sortBy;
+  const session = await Hazuki.secrets.get("session");
+  let index = zaimanhuaCommentIndexes.get(key);
+  if (!index || index.session !== session || (!replyTo && page === 1)) {
+    index = {
+      id,
+      sortBy,
+      session,
+      roots: [],
+      rows: new Map(),
+      parents: new Map(),
+      rootIds: new Map(),
+      threads: new Map(),
+      listed: new Set(),
+      nextPage: 1,
+      done: false,
+      pending: null,
+    };
+    // Keep a few active comic/order snapshots, never persist account comments.
+    zaimanhuaCommentIndexes.delete(key);
+    if (zaimanhuaCommentIndexes.size >= 4) {
+      const oldest = zaimanhuaCommentIndexes.keys().next().value;
+      if (oldest) zaimanhuaCommentIndexes.delete(oldest);
+    }
+    zaimanhuaCommentIndexes.set(key, index);
+  }
+  const end = page * zaimanhuaCommentPageSize;
+  let ids = replyTo ? zaimanhuaThreadComments(index, replyTo) : index.roots;
+  while (!index.done && ids.length <= end) {
+    await zaimanhuaNextCommentBatch(index);
+    ids = replyTo ? zaimanhuaThreadComments(index, replyTo) : index.roots;
+  }
+  return {
+    comments: ids
+      .slice(end - zaimanhuaCommentPageSize, end)
+      .map((commentId) => zaimanhuaSourceComment(index, commentId, !!replyTo)),
+    maxPage: ids.length > end || !index.done ? page + 1 : page,
   };
 }
 
@@ -990,6 +1088,7 @@ async function zaimanhuaSendComment(id, _subId, text, replyTo) {
       },
     },
   );
+  zaimanhuaClearComments(String(comicId));
 }
 
 /** Only addLike is exposed by the observed website; do not invent an unlike API.
@@ -1009,15 +1108,17 @@ async function zaimanhuaLikeComment(id, _subId, commentId, isLike) {
       token,
     },
   );
+  zaimanhuaClearComments(id);
 }
 
 Hazuki.registerSource({
   id: "zaimanhua",
   name: "再漫画",
-  version: "1.4.2",
+  version: "1.5.1",
   apiVersion: 1,
   presentation: {
     showComments: true,
+    commentReplies: true,
     commentOrders: { 1: "最新", 2: "热门" },
     commentDefaultOrder: "1",
     buttons: [
@@ -1077,15 +1178,19 @@ Hazuki.registerSource({
   explore: [
     {
       title: "首页",
-      type: "singlePageWithMultiPart",
+      type: "multiPartPage",
       load: async () => {
         const home = await zaimanhuaHome();
-        return {
-          精品力荐: zaimanhuaComics(home.recList),
-          最新更新: zaimanhuaComics(home.updateList),
-          本周排行: zaimanhuaComics(home.weekRankList),
-          本月排行: zaimanhuaComics(home.monthRankList),
-        };
+        return [
+          { title: "精品力荐", comics: zaimanhuaComics(home.recList) },
+          {
+            title: "最新更新",
+            comics: zaimanhuaComics(home.updateList),
+            viewMore: "explore:1",
+          },
+          { title: "本周排行", comics: zaimanhuaComics(home.weekRankList) },
+          { title: "本月排行", comics: zaimanhuaComics(home.monthRankList) },
+        ];
       },
     },
     { title: "最新更新", type: "multiPageComicList", load: zaimanhuaUpdates },

@@ -11,6 +11,7 @@ authorization headers or personal credentials were used or captured.
 | home.json     | `/api/v1/comic2/index`                                                                                   |
 | banner-comics.json | `/api/v1/comic2/comic/detail?id=<obj_id>` for the six comics in `home.json`'s banner list; only `comicInfo.id/title/cover` retained, indexed by comic ID |
 | update.json   | `/api/v1/comic2/update_list?page=1&size=20`                                                              |
+| update2.json  | same update list, `page=2` (distinct next 20 comics)                                                    |
 | catalog.json  | `/api/v1/comic1/filter?sortType=0&page=1&size=20&status=0&audience=0&theme=0&cate=0&zone=0&firstLetter=` |
 | ranking.json  | `/api/v1/comic1/rank_list?page=1&size=20&duration=1&cate=1&tag=0&theme=0`                                |
 | detail.json   | `/api/v1/comic2/comic/detail?id=80825`                                                                   |
@@ -59,6 +60,24 @@ The popular fixtures were captured anonymously on 2026-10-18 with `size=16`.
 No real comment was sent, replied to, or liked during verification. Authenticated
 write success is mocked and has not been verified with a real account. No unlike
 endpoint or separate reply-thread endpoint has been established.
+
+In v1.5.0 the plugin groups the mixed list into native reply threads using those
+ancestor chains. Only roots enter the main list; replies retain their own content
+and exact parent IDs. Raw batches use `size=100` (the server's observed maximum),
+while host pages remain 16 items. Additional raw pages are read on demand to fill
+main/reply pages, ignoring the unreliable `total`. The existing 16-item snapshots
+are also used as short mocked batches; synthetic larger batches cover pagination,
+self replies, nested replies, deleted ancestors, retries and cache invalidation.
+
+Anonymous live reads on 2026-10-19 verified main/reply grouping in newest and
+popular order, including the reported self reply on `猫咪日常` (comic 16210) and
+cross-page threads on comic 80825. No new authenticated write was performed.
+
+In v1.5.1 the home update preview links to the existing paginated update loader
+through `viewMore: "explore:1"`. Anonymous live reads on 2026-10-19 verified that
+pages 1 and 2 each return 20 distinct comics. The host QuickJS discovery gateway
+was checked with the captured home/update snapshots to verify the link and page
+parameters; the homepage preview does not consume or skip update-list page 1.
 
 Check-in routes are declared by the account center's `app.6311fe13.js`:
 GET `https://i.zaimanhua.com/lpi/v1/task/list` and bodyless POST
