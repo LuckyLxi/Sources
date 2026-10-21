@@ -86,6 +86,10 @@ infoFields: [
 
 `account.checkIn` 返回 `{status: "success" | "alreadyCheckedIn" | "skipped", message?}`。账号能力和这些操作都作用于该插件，不能读取其他插件的凭据。
 
+## 章节下载
+
+章节下载由宿主统一处理，默认支持多选和全选，插件无需提供额外接口或声明。
+
 ## 阅读按钮上方的短统计行
 
 `comic.loadInfo().headerStats` 自由声明阅读按钮上方的短统计内容，名称、文案、数量和顺序由插件决定。宿主沿用现有文字样式、间距、加载占位和入场动画；不再根据 `likesCount`、`viewsCount`、`pageCount`、`tags` 或旧 `showPageCount` 开关自动拼接统计文案。省略或返回空数组时不显示统计内容。
@@ -130,6 +134,8 @@ presentation: {showComments: true, commentReplies: true}
 `loadComics(page, folderId)`、`addOrDelFavorite(comicId, folderId, adding)` 和 `favorited` 使用同一套插件收藏夹 ID。查询漫画收藏状态时，`favorited` 返回该漫画所属的 ID，未收藏返回空数组；只查询收藏夹列表时，`comicId` 为 `null`，可省略 `favorited`。`singleFolderForSingleComic` 仅表示一部漫画能否同时放入多个收藏夹，不表示网站只有一个收藏夹。
 
 网站没有分组时，可以只实现 `loadComics` 和收藏操作，省略 `loadFolders`。未提供收藏夹接口或返回的列表为空时，宿主显示一个默认“全部”入口。为兼容既有插件，`'0'` 仍是可选的旧版“全部”ID；其显示、不可删除规则，以及 `loadComics` 的 `null` / `'0'` 聚合加载兼容行为保持不变。需要保留这个入口的分组插件应显式返回它；普通收藏夹无需使用这个 ID。
+
+可选 `favorites.renameFolder(id, name)` 用于重命名云端收藏夹，返回 `void` 或 `Promise<void>`，失败时抛出异常。只有提供此函数的插件才会启用收藏页云端模式的长按重命名；交互与本地模式相同，提交前会去除名称两端空白，空名称和未改变的名称不会提交。宿主传入原收藏夹 ID 和新名称，插件应保持 ID 不变；成功后宿主重新调用 `loadFolders(null)` 刷新名称，并保留当前收藏夹选择。旧版 `'0'`“全部”入口不能重命名。不提供此接口的插件保持原有行为。
 
 ## 宿主 SDK
 
@@ -314,10 +320,71 @@ comic: {
 
 宿主按能力声明处理展示与网络规则，不按源 ID 分支。以下均为可选的 `presentation` 字段：
 
+- `menus: Record<string, SourceMenuEntry[]>`：通用菜单声明，按菜单调用处的 `menuId` 匹配，不限于收藏页。菜单项使用 `{value: '宿主选项值', title?: SourceText}`、`{action: '插件操作名', title: SourceText}` 或 `{id: '分组标识', title: SourceText, children: [...]}`。普通选项调用该菜单原有的回调；操作项在所有菜单关闭后调用所属源的 `actions[action]()`，支持插件交互、返回提示和错误提示。子菜单展开时父菜单缩小至 96% 并淡化，关闭子菜单后恢复。省略声明或声明为空数组时保留原菜单。`order` 是兼容旧收藏声明的 `value` 别名，两者不得同时出现。
+- `menus` 的菜单 ID 是调用方自定义的非空字符串，没有固定白名单。项目代码在 `HazukiFrostedMenuButton<T>`、`HazukiFrostedDropdown<T>` 或 `showHazukiFrostedMenu<T>` 传入 `pluginMenu: SourcePluginMenuBinding<T>(menuId: 'my.custom.menu')` 即可接入同一机制，无需增加协议枚举。组件从当前源读取声明；展示其他源的内容时应显式传入 `sourceKey`。宿主原选项值默认通过 `toString()` 与声明中的 `value` 匹配，可用 `valueId` 指定转换规则；返回值仍是原来的 `T` 类型。字符串值允许为空，插件操作名和分组 ID 不得为空。
+- 内置菜单调用 ID：`favorites.cloud.sort`（云收藏排序）、`favorites.local.sort`（本地收藏排序）、`search.sort`（搜索排序）、`comments.sort`（评论排序，列表和详情共用）、`reader.imageQuality`（阅读画质）、`comic.chapterGroup`（章节分组）、`account.loginMethod`（登录方式）、`plugin.settings.<设置键>`（插件设置中的下拉菜单）、`settings.chineseConversion`（中文转换，值为 `off/traditional/simplified`）、`settings.softwareUpdateSource`（软件更新源，值为 `jsDelivr/github/ghproxy`）。这些是现有调用点，并非限制新增 ID 的列表。普通选项必须匹配该调用处已有选项，未知值及空子菜单会被忽略；遗漏的可用选项追加到根菜单。本地收藏排序仍使用宿主的 `savedNewest/savedOldest/updatedNewest` 策略，插件可调整菜单分组和增加操作，无需改写宿主排序实现。
+- 每个 `menus[menuId]` 最多四层、总计 100 项；同级普通值、操作名、分组 ID 分别不得重复，子菜单必须有内容。菜单定义相互隔离；停用或卸载的插件不能覆盖菜单。切换源或销毁菜单入口后，关闭已打开的菜单并取消所属插件交互。旧 `favoriteMenu` 继续作为 `menus['favorites.cloud.sort']` 的兼容声明；显式的同名 `menus` 条目优先，包括空数组。
+
+插件操作和固定操作按钮也使用同一套 `menus` 声明：
+
+- `presentation.actions` 在插件、阅读、其他、实验室、高级、线路六个位置，自动读取 `menus['plugin.actions.<操作ID>']`；例如操作 `refreshLines` 使用 `plugin.actions.refreshLines`。
+- 固定操作按钮签到、重置设备分别读取 `plugin.buttons.checkIn`、`plugin.buttons.resetDeviceInfo`。菜单声明只改变已有入口的交互，不会自行显示按钮或绕过原来的登录、能力及禁用条件。复制漫画 ID 保持手机长按、桌面点击直接复制，不读取菜单声明；`copyComicId` 按钮声明仍只控制该入口是否显示。
+- 操作按钮未声明菜单或声明为 `[]` 时直接执行原操作。声明菜单后，`{value: 'default'}` 引用该按钮原来的操作，可放在任意层级；省略 `title` 时使用原按钮标题。未引用 `default` 时不会自动追加原操作。`default` 是按钮菜单的宿主值，不是插件 `actions` 中的保留操作名。
+- 操作项 `{action, title}` 可调用所属插件的其他操作，无需再加入 `presentation.actions`。选择原操作或插件操作后，先等待全部菜单的关闭动画完成，再执行回调；默认业务流程保留原来的提示，公共入口不重复提示。菜单操作仍支持返回提示和错误提示。
+- 自动签到开关、相关推荐标签页、输入和布尔设置保留原有交互；图片质量继续使用 `reader.imageQuality`，插件下拉设置继续使用 `plugin.settings.<设置键>`，这些选择菜单仍会追加遗漏的可用选项。
+- 项目新增普通按钮可使用 `SourcePluginButtonInteraction`，自定义插件操作使用其 `.action` 构造方法，传入 `id`、`title`、`sourceKey`、`onInvoke` 与 `builder(context, activate)`；在原按钮的点击或长按处使用 `activate`，由组件生成菜单 ID 并管理定位、忙碌状态和请求生命周期。异步 `onInvoke` 应返回其 Future，并在自行显示迟到结果前检查交互作用域。现有菜单按钮和下拉菜单也共用 `SourcePluginInteraction<T>` 控制器，项目自定义菜单 ID 仍通过 `SourcePluginMenuBinding<T>` 接入。
+- 漫画入口固定绑定漫画所属源，插件操作固定绑定声明它的插件；切换绑定源、停用或卸载插件、销毁入口时关闭菜单并取消关联交互。异步结果不得重新打开旧菜单或触发已过期操作。
+
+按钮菜单示例（`refreshLines`、`exportLines` 由插件根对象的 `actions` 实现）：
+
+```js
+presentation: {
+  actions: [{id: 'refreshLines', title: '刷新线路', location: 'lines'}],
+  buttons: [{id: 'checkIn', location: 'homeProfile'}],
+  menus: {
+    'plugin.actions.refreshLines': [{
+      id: 'lines', title: '线路操作', children: [
+        {value: 'default'}, // 执行原来的 refreshLines 操作
+        {id: 'more', title: '更多', children: [
+          {action: 'exportLines', title: '导出线路'},
+        ]},
+      ],
+    }],
+    'plugin.buttons.checkIn': [
+      {value: 'default', title: '立即签到'}, // 保留宿主登录校验和签到结果提示
+      {action: 'refreshLines', title: '刷新线路'},
+    ],
+  },
+}
+```
+
+通用菜单示例（普通选项值应换成对应菜单已有的值）：
+
+```js
+presentation: {
+  menus: {
+    'search.sort': [{
+      id: 'ordering',
+      title: {zh: '排序', en: 'Order'},
+      children: [
+        {value: 'mr'},
+        {action: 'refreshLines', title: {zh: '刷新线路', en: 'Refresh lines'}},
+      ],
+    }],
+    'favorites.local.sort': [{
+      id: 'saved', title: {zh: '收藏时间', en: 'Date added'},
+      children: [{value: 'savedNewest'}, {value: 'savedOldest'}],
+    }],
+  },
+}
+```
+
 - `listTagGroups: string[]`：从详情 `tags` 中提取哪些分组作为列表、收藏和历史标签；分组名忽略大小写和首尾空格，标签去重。未声明时不从详情提取列表标签，已有记录标签仍保留。
 - `enrichMissingTags: boolean`：为缺少标签的列表条目调用所属插件的 `comic.loadInfo`；默认不补查。收藏和历史补查最多四个并发，切源或停用后忽略过期结果，失败不阻断列表。
 - `favoriteOrderAliases: Record<string,string>`：将旧收藏排序值映射到当前 `favoriteOrders` 中的值。已支持的值优先，否则尝试别名、插件默认值、首个选项；没有选项时返回空值。
 - `favoriteOrderLabels: Record<string, string | Record<string,string>>`：为 `favoriteOrders` 中的云收藏排序值声明标签，支持字符串或 `{zh, en}` 语言映射。未声明的旧编码保留兼容文案，其他值直接显示编码。例如 `favoriteOrders: ['recent'], favoriteOrderLabels: {recent: {zh: '最近收藏', en: 'Recently saved'}}`。
+- `favoriteMenu: SourceFavoriteMenuEntry[]`：可选的云收藏排序按钮菜单。未声明或为空数组时保留原来的平铺菜单；本地收藏不受影响。每项只声明一种行为：`{order: 'dd', title?: SourceText}` 选择已有排序值；`{action: 'exportFavorites', title: SourceText}` 调用插件注册对象的 `actions.exportFavorites()`；`{id: 'saved', title: SourceText, children: [...]}` 展开带动画的子菜单，父菜单保留并淡化。`title` 支持字符串、插件翻译字典和语言映射；排序项未提供标题时使用 `favoriteOrderLabels` 和原有兼容文案。示例：`favoriteMenu: [{id: 'saved', title: {zh: '收藏时间', en: 'Saved'}, children: [{order: 'dd'}, {order: 'da'}, {action: 'exportFavorites', title: {zh: '导出收藏', en: 'Export favorites'}}]}]`。
+- `favoriteMenu` 最多四层、总计 100 项；子菜单 `children` 不得为空，同级排序值、操作名、分组 ID 分别不得重复。排序项只能选择当前 `favoriteOrders` 中的值，不支持的项和因此变空的子菜单会被忽略，未出现在菜单中的有效排序自动追加到根菜单末尾，避免遗漏排序入口。操作项无需额外加入 `presentation.actions`，只需实现插件注册对象的 `actions` 回调；点击后先关闭所有菜单，再无参数调用该回调，沿用现有插件交互作用域，支持 `UI.dialog` 等交互、返回提示和错误提示。执行中禁用菜单按钮以避免重复调用；切源或入口销毁时关闭菜单并取消所属交互。云收藏仍在登录后显示该入口；仅声明操作、不声明排序时也可以显示菜单。
 - 本地收藏排序由宿主独立管理，固定支持 `savedNewest`（收藏时间倒序）、`savedOldest`（收藏时间正序）、`updatedNewest`（更新时间倒序），与当前插件的云收藏排序无关，偏好保存通用策略值。
 - `localFavoriteOrders`：兼容旧偏好，将历史插件排序值映射到上述通用策略；仅在迁移旧偏好时使用，迁移后切换漫画源不会改变本地排序。
 - 搜索排序的选中值和实际请求统一校验 `searchOrders`，无效值回退到有效的 `searchDefaultOrder` 或首个选项；未声明选项时使用空值，并隐藏排序入口。
@@ -430,7 +497,7 @@ npm --prefix dev test
 
 声明登录方式的登录在独立运行时执行，init、HTTP Cookie、私有 storage/settings 与 Secrets 写入均暂存。返回成功资料或正常完成后才提交；异常、取消、切源、停用和卸载丢弃本次写入，迟到的交互结果不会提交。成功后重建正常运行时，插件必须通过持久存储保留会话，不能只保存在临时 JS 变量里。每个插件同时只允许一个登录尝试。提交失败会尝试回滚，回滚自身失败会明确报告。
 
-后台自动重登不会展示交互；这类账号需要用户重新打开登录入口。短信、验证码请求和网站业务校验始终由插件负责。无初始输入的成功登录使用独立会话标记，不要求保存密码；旧账号记录继续兼容。
+后台自动重登也可以通过 `Hazuki.ui` 展示交互，无需改为手动登录才能弹窗；`context` 专用登录接口仍属于隔离登录流程。短信、验证码请求和网站业务校验始终由插件负责。无初始输入的成功登录使用独立会话标记，不要求保存密码；旧账号记录继续兼容。
 
 ### 浏览器授权（Android / Windows）
 
@@ -480,4 +547,111 @@ Windows 每次授权使用独立 WebView2 环境及目录；缺少运行时时�
 
 Cookie 属性包括 `domain/path/expiresAt`（毫秒）、`secure/httpOnly/sameSite/hostOnly`。旧记录与旧 set 调用仍可读取；省略 hostOnly 时，无点前缀的域名按主机 Cookie，点前缀按域 Cookie 解释。HTTPS、域名和路径边界必须匹配，同名不同路径优先发送长路径且保留各项。Windows 读取本次 WebView2 环境；Android 需同时支持 MULTI_PROFILE 和 GET_COOKIE_INFO，使用 Profile 的 CookieManagerCompat 获取属性，不使用网页 JS 降级。系统浏览器及其它插件的 Cookie 不参与导入。
 
+声明非空 `cookieScopes` 时，宿主同时读取本次 WebView 的实际 User-Agent，自动绑定到各 scope URL 的精确 HTTPS origin（含端口），不扩展至父域或子域。导入的 Cookie 和 UA 在插件校验登录前就能供 `Hazuki.http` 使用；UA 优先于插件显式传入的任意大小写 `User-Agent` 请求头。HTTP 重定向按每一跳的目标重新选择 UA 和 Cookie，不把来源的授权 UA 沿用到其他 origin。
+
+UA 与 Cookie 一同进入登录事务和插件专属安全存储：成功后持久化，验证失败、取消或提交失败恢复原会话。运行时重建、应用重启后继续使用保存值；退出账号、清除对应 URL 的 Cookie 或卸载插件时清理绑定。旧 Cookie 会话不猜测 UA，需重新进行浏览器授权建立绑定。无 `cookieScopes` 的回调授权不改变 HTTP UA。实际 UA 读取失败时返回 `login_browser_user_agent_unavailable`，不会单独提交 Cookie。公开授权结果仍只有原有的 status/url；插件不能读取宿主内部导入字段。
+
 通用示例见 [cloud-and-authorization.js](examples/cloud-and-authorization.js)。平台集成与真实网站结果见 [授权验证记录](plugin_authorization_verification.md)；示例不是任何生产网站的已验证实现。
+
+## 通用原生交互弹窗
+
+`Hazuki.ui` 是 API v1 的可选扩展，旧宿主先用 `typeof Hazuki.ui?.openDialog === "function"` 检测。调用 `await Hazuki.ui.isAvailable()` 查询弹窗宿主是否可用；不再按前台、后台或业务方法分配交互资格。应用退到系统后台时仍可请求弹窗，返回前台后展示，普通弹窗不会因此取消。
+
+插件自行决定何时弹窗，搜索、漫画加载、评论、收藏、登录、插件操作按钮、设置回调以及后台预热、预加载、静默刷新、下载、同步、阅读进度上报和自动重登均可直接调用同一套 `Hazuki.ui` API。初始化、网络请求、Promise 等待和保留的异步回调也可弹窗，无需更换调用入口或修改宿主业务代码。并发执行仍按插件和运行时隔离。导入时的脚本检查属于声明检查环境，不执行 init，不连接 UI 或真实账号数据；该环境的 isAvailable 返回 false。
+
+页面导航本身不再撤销弹窗能力；原操作返回后仍保留的 JS 回调可建立新的交互上下文。控制器显式取消或销毁、请求被替换、切源、停用和运行时销毁仍可终止对应操作，已取消的操作不能继续提交 HTTP 请求。用户关闭验证码窗口时应结束发送并保留草稿。宿主不能撤回已经发出的请求，插件不能在发送结果不明时自动重发评论。完整验证码示例见 [comment-captcha.js](examples/comment-captcha.js)。
+
+```js
+const dialog = await Hazuki.ui.openDialog({
+  title: "输入访问密码",
+  content: [{id: "password", type: "input", label: "密码", obscure: true, required: true}],
+  buttons: [{id: "submit", text: "提交", role: "primary", validate: true}],
+});
+try {
+  const event = await dialog.nextEvent();
+  if (event.type === "closed") throw new Hazuki.ui.PluginDialogCancelledError(event.reason);
+  // 在插件中验证 event.values.password；失败可以更新同一个窗口。
+} finally {
+  await dialog.close();
+}
+```
+
+窗口显示插件名称，外观和动画由宿主统一处理。content 按顺序垂直排列，每个组件有唯一字符串 id：
+
+| type | 字段及用途 |
+| --- | --- |
+| text | text，tone 可为 normal/error/secondary |
+| image | image 图片数据，description 可选 |
+| input | label、initialValue、placeholder、obscure、keyboardType（text/number）、required、maxLength；返回字符串 |
+| select | label、options: [{value,label}]、multiple、initialValue、required、notifyChange；单选返回字符串，多选返回字符串数组 |
+| toggle | label、initialValue、notifyChange；返回 boolean |
+| clickImage | image、hintImage、description、pointCount；返回按点选顺序排列的原图像素坐标 [{x,y}]，支持撤销和清空 |
+| progress | text、value；value 为 0–1，省略时为不定进度 |
+| divider | 内容分隔 |
+
+文案遵守 SourceText 与插件 translation 规则。input 默认空字符串，select 默认未选择（单选为空字符串、多选为空数组），toggle 默认 false，clickImage 默认空数组；选项 value 必须非空且唯一。数字键盘只是输入提示，网站业务格式由插件校验。图片只接受 Uint8Array、number[] 或 base64 image Data URL；需要联网时先通过 Hazuki.http 获取。clickImage 返回原图坐标，忽略缩放留白；pointCount 可为 1–32 的精确点数，省略时最多 32 点。第一版不包含滑块拼图、HTML 或自定义绘制。
+
+buttons 为 1–4 项 `{id,text,role?,enabled?,validate?}`，role 默认 secondary，至多一个 primary。点击按钮返回 `{type:"action",id,values}`，不会自动关闭。validate 默认 false；设为 true 时校验 required、maxLength 和点数（精确 pointCount 或至少一点），失败在原地提示。select/toggle 的 notifyChange 默认为 false；启用时返回 `{type:"change",id,values}`。普通输入不逐字通知。values 是当前交互组件的完整值快照，不含文字、图片等展示组件。
+
+收到 action/change 后窗口自动进入 busy，暂时禁用业务控件和按钮；插件完成联网或其他处理后调用 `await dialog.update({title?,content?,buttons?,values?,busy?,fieldErrors?})`。默认更新成功解除 busy，传 busy:true 可以继续显示处理中。未提供的标题、内容、按钮和值保持不变，content/buttons 提供时替换整个数组；相同 id 和类型的组件保留已有输入，values 可显式覆盖或清空。select 新选项不再包含旧选择时采用新默认值；点图换图清空旧坐标。补丁整体验证成功才应用，失败保留原窗口。
+
+第二版支持 `fieldErrors: {code: "验证码错误，请重试"}`，在对应的 input/select/toggle/clickImage 下显示错误，支持 SourceText 本地化。提供时替换整个错误集合，null 项不显示错误，`{}` 清空全部；省略 fieldErrors 的更新也清空错误，保持第一版行为。用户编辑某个字段会清除该字段的错误，提交时重新执行宿主基础校验。字段 ID 必须指向更新后的交互组件，非法 ID 或文案使整个更新失败。错误文字沿用单项 32 KiB、总计 256 KiB 的限制。
+
+同一窗口只能有一个未完成的 nextEvent；并发等待报 plugin_ui_wait_in_progress。用户关闭、控制器取消、请求被替换、相关源切换、停用/卸载或运行时销毁时，nextEvent 返回 `{type:"closed",reason}`；页面导航和应用退后台本身不再取消窗口。reason 的完整联合类型见类型声明。关闭后的 nextEvent 继续返回同一终态，update 报 plugin_ui_closed，close 可重复调用。关闭不保存输入，也不回滚已发送的网站请求。用户取消后插件应抛出 PluginDialogCancelledError 或返回无需交互的业务结果；同一次已取消操作不能重新打开窗口，宿主不因自动重试再次弹出该交互。
+
+普通弹窗和通用 WebView 全局串行展示；同一操作可发起多个请求并依次排队，多步表单也可使用 update。openDialog 等实际展示后才返回句柄；宿主未连接或运行时已退出时报 plugin_ui_unavailable，排队取消报 plugin_ui_cancelled:原因。用户始终可以通过关闭、遮罩或返回键取消，busy 不阻止取消。退后台时保留请求并暂停新窗口展示，桌面失焦或 inactive 不会取消。正在进行的浏览器会话也会保留，以兼容自动填充、密码管理器等临时系统页面；该浏览器操作在后台不继续发起插件 HTTP 请求，结果等待返回前台后再导入及校验，仍受浏览器自身超时限制。关闭登录、显式取消、切源或运行时销毁仍会取消授权。登录中的组件复用现有登录窗口，旧 context.requestText/requestClickCaptcha 继续有效。
+
+等待用户或排队期间暂停对应业务等待预算；事件交给插件后恢复业务计时，下一次 nextEvent 再暂停。初始化中的交互同样暂停初始化等待预算。同一操作累计前台交互等待上限 5 分钟，更新/刷新/重开不重置，单次前台排队上限 60 秒；应用处于系统后台的等待不消耗这两个预算。HTTP 自身超时和同步 JS 5 秒限制继续有效。每个窗口最多 64 个组件、select 最多 100 项；单图最多 4 MiB、合计最多 8 MiB、单图最多 400 万像素。普通文案单项最多 32 KiB、合计最多 256 KiB；输入 maxLength 默认 4096，可设置 1–32768（UTF-16 单元）。格式或大小不合法报 plugin_ui_invalid_options，损坏图片在窗口内显示错误且保留刷新/关闭操作。
+
+完整示例见 [通用表单与图形验证码](examples/dialog.js)，包括选择变化后更新窗口、同一窗口验证失败重试，以及 finally 关闭。
+
+### 通用 WebView
+
+检测 `typeof Hazuki.ui?.openWebView === "function"` 后，可在任意插件任务中调用，无需处于账号登录流程：
+
+```js
+const result = await Hazuki.ui.openWebView({
+  title: "完成网站验证",
+  url: "https://example.com/verify",
+  cookieScopes: [{url: "https://example.com/", names: ["clearance"]}],
+});
+if (result.status === "completed") {
+  // 所声明 Cookie 和实际浏览器 UA 已导入当前插件，可以继续原来的请求。
+  const response = await Hazuki.http.get("https://example.com/comics");
+}
+```
+
+参数沿用浏览器授权的 `title/url/callbacks/completion/cookieScopes/timeoutMs`；省略 completion 时，有非空 callbacks 默认 callback，否则默认 manual。手动完成返回当前顶层页面 URL；回调完成返回命中的回调 URL。`Hazuki.ui.requestBrowserAuthorization(options)` 使用同一展示与导入通道，默认完成方式仍为 callback，与登录 context 接口一致。
+
+`openWebView` 和 `Hazuki.ui.requestBrowserAuthorization` 返回带 `close()` 方法的 Promise；原有 `await` 调用方式保持有效。需要插件主动关闭时，先保留请求对象，不要先 await 它：
+
+```js
+const view = Hazuki.ui.openWebView({
+  title: "网站验证",
+  url: "https://example.com/verify",
+});
+// 插件可在自己的异步流程或同一运行时的其它回调中主动关闭。
+await view.close();
+const result = await view; // {status: "closed", reason: "plugin"}
+```
+
+`close()` 可重复调用，也可关闭尚未展示的排队请求。正在展示的窗口会播放退出动画，等待浏览器资源清理后 close 才完成；只关闭该请求，不取消整个插件操作，也不导入本次 Cookie/UA。已成功完成的请求保留原结果，之后调用 close 不影响其它窗口。用户关闭、超时和运行时退出仍沿用原有结果或异常；只使用 close 而不读取结果不会引入未处理的 Promise 拒绝。关闭只能操作当前插件及运行时拥有的窗口。系统后台中的排队请求可直接关闭，其结果仍遵循返回前台后交付的规则。
+
+窗口沿用现有隔离 WebView 和平台支持范围（Android / Windows），URL、回调和 Cookie 范围规则与浏览器授权相同。Cookie 和 UA 导入当前插件会话；在隔离登录运行时中仍先暂存，正常登录成功后提交，失败或取消则丢弃。一般任务中的成功导入直接保存，不创建账号资料，也不会自动调用登录。浏览器与普通弹窗共享全局展示队列；用户取消、超时或运行时销毁会结束本次请求。
+
+### 快捷弹窗（第二版）
+
+先检测 `typeof Hazuki.ui?.prompt === "function"` 并查询 isAvailable；该新增接口也可用于识别支持 fieldErrors 的宿主。快捷弹窗复用 openDialog，继承统一排队、生命周期与等待上限，可从任意插件任务调用。
+
+```js
+await Hazuki.ui.alert({title: "提示", message: "操作已完成"});
+const accepted = await Hazuki.ui.confirm({title: "确认操作", message: "是否继续？"});
+const code = await Hazuki.ui.prompt({title: "输入访问码", label: "访问码", obscure: true, required: true});
+if (code !== null) { /* 处理用户提交的字符串 */ }
+```
+
+共同选项为必填 title、可选 message、confirmText、cancelText，全部支持 SourceText。确认按钮默认为“确定 / OK”，取消为“取消 / Cancel”，由当前宿主语言及插件翻译规则解析。alert 仅显示确认按钮，确认后返回 void；confirm 返回 boolean；prompt 返回 string 或 null，额外支持必填 label 以及 initialValue、placeholder、obscure、keyboardType、required、maxLength，默认值与 input 一致。
+
+明确点击取消按钮时 confirm 返回 false、prompt 返回 null，不取消当前操作；prompt 的取消按钮不验证字段。关闭、返回、离页或超时则沿用取消机制，窗口已显示时抛 PluginDialogCancelledError（包含 code/reason）；排队阶段沿用 openDialog 的取消错误。所有快捷调用在结束或失败时清理窗口，后台调用不会显示 UI。
+
+再漫画 1.6.0 在支持第二版接口且当前交互可用时，密码/短信登录使用同一个窗口完成点图、刷新、验证失败重试及短信输入；短信格式错误可以原地修正。账号与登录方式仍由原入口提供，第三方授权不变；旧宿主保留 requestClickCaptcha/requestText 流程。短信服务端错误沿用原失败规则，不自动重发短信。该流程的自动化测试使用合成响应，真实账号与设备人工验证需单独记录。

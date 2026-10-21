@@ -178,6 +178,7 @@ function plugin(override, initial = {}) {
     );
   };
   const Hazuki = {
+    ...(initial.ui ? { ui: initial.ui } : {}),
     registerSource(value) {
       assert.equal(source, undefined);
       source = value;
@@ -232,7 +233,7 @@ test("registers an API v1 source discoverable by the index generator", () => {
   const { buildIndex } = require("../scripts/update-plugin-index.cjs");
   const entry = buildIndex(ROOT).plugins.find((item) => item.id === source.id);
   assert.equal(entry.name, "再漫画");
-  assert.equal(entry.version, "1.5.1");
+  assert.equal(entry.version, "1.6.0");
   assert.equal(source.apiVersion, 1);
   assert.equal(source.comic.onReadingProgress, undefined);
   assert.equal(source.comic.loadReadingProgress, undefined);
@@ -1512,6 +1513,256 @@ function loginContext(method, overrides = {}) {
     ...overrides,
   };
 }
+
+function nativeDialogs(events, onEvent = () => {}) {
+  const opened = [];
+  const updates = [];
+  let closed = 0;
+  let stopped = false;
+  class Cancelled extends Error {
+    constructor(reason) {
+      super(`plugin_ui_cancelled:${reason}`);
+      this.code = "plugin_ui_cancelled";
+      this.reason = reason;
+    }
+  }
+  return {
+    opened,
+    updates,
+    cancel: () => {
+      stopped = true;
+    },
+    get closed() {
+      return closed;
+    },
+    ui: {
+      prompt: async () => {
+        throw new Error("unexpected shortcut");
+      },
+      isAvailable: async () => true,
+      PluginDialogCancelledError: Cancelled,
+      openDialog: async (options) => {
+        opened.push(options);
+        return {
+          nextEvent: async () => {
+            assert.ok(events.length, "unexpected extra event wait");
+            const event = events.shift();
+            onEvent(event);
+            return event;
+          },
+          update: async (patch) => {
+            if (stopped) throw new Error("plugin_ui_closed");
+            updates.push(patch);
+          },
+          close: async () => {
+            closed++;
+          },
+        };
+      },
+    },
+  };
+}
+
+test("native password flow refreshes and retries in one window", async () => {
+  const native = nativeDialogs([
+    { type: "action", id: "refresh", values: { points: [] } },
+    { type: "action", id: "submit", values: { points: clickedPoints } },
+    { type: "action", id: "submit", values: { points: clickedPoints } },
+  ]);
+  let submissions = 0;
+  const host = plugin(
+    (url) => {
+      if (url.includes("/login/passwd") && submissions++ === 0)
+        return { status: 200, body: '{"errno":102,"errmsg":"expired"}' };
+    },
+    { ui: native.ui },
+  );
+  await host.source.account.login(
+    "user",
+    "password",
+    loginContext("password", {
+      requestClickCaptcha: async () => {
+        throw new Error("legacy called");
+      },
+    }),
+  );
+  assert.equal(native.opened.length, 1);
+  assert.equal(native.closed, 1);
+  assert.equal(submissions, 2);
+  assert.equal(
+    host.requests.filter((r) =>
+      r.url.pathname.endsWith("/captcha/click/create"),
+    ).length,
+    3,
+  );
+  assert.deepEqual(Array.from(native.updates[0].values.points), []);
+  assert.match(native.updates[1].fieldErrors.points, /验证未通过/);
+  assert.equal(host.secrets.get("session"), "test-session");
+});
+
+test("native SMS flow changes stages and corrects input without resending", async () => {
+  let host;
+  const native = nativeDialogs(
+    [
+      { type: "action", id: "submit", values: { points: clickedPoints } },
+      { type: "action", id: "submit", values: { code: "abc" } },
+      { type: "action", id: "submit", values: { code: " 123456 " } },
+    ],
+    (event) => {
+      if ("code" in event.values)
+        assert.ok(
+          host.requests.some((r) => r.url.pathname.endsWith("/sms/send")),
+        );
+    },
+  );
+  host = plugin(undefined, { ui: native.ui });
+  await host.source.account.login(
+    "13800000000",
+    "",
+    loginContext("sms", {
+      requestText: async () => {
+        throw new Error("legacy called");
+      },
+    }),
+  );
+  assert.equal(native.opened.length, 1);
+  assert.equal(native.closed, 1);
+  assert.equal(native.updates[0].content[1].id, "code");
+  assert.equal(native.updates[0].buttons.length, 1);
+  assert.match(native.updates[1].fieldErrors.code, /数字/);
+  assert.equal(
+    host.requests.filter((r) => r.url.pathname.endsWith("/sms/send")).length,
+    1,
+  );
+  const submissions = host.requests.filter((r) =>
+    r.url.pathname.endsWith("/login/sms"),
+  );
+  assert.equal(submissions.length, 1);
+  assert.equal(submissions[0].url.searchParams.get("sms_code"), "123456");
+  assert.equal(host.secrets.get("session"), "test-session");
+});
+
+test("native captcha and SMS closure stop requests and never save credentials", async () => {
+  for (const method of ["password", "sms"]) {
+    const events =
+      method === "sms"
+        ? [{ type: "action", id: "submit", values: { points: clickedPoints } }]
+        : [];
+    events.push({ type: "closed", reason: "user" });
+    const native = nativeDialogs(events);
+    const host = plugin(undefined, { ui: native.ui });
+    await assert.rejects(
+      host.source.account.login(
+        method === "sms" ? "13800000000" : "user",
+        "password",
+        loginContext(method),
+      ),
+      (e) => e.code === "plugin_ui_cancelled",
+    );
+    assert.equal(native.closed, 1);
+    assert.equal(host.secrets.size, 0);
+    assert.equal(
+      host.requests.some((r) => /\/login\//.test(r.url.pathname)),
+      false,
+    );
+  }
+});
+
+test("native server and network errors close the window without saving credentials", async () => {
+  for (const method of ["password", "sms"]) {
+    for (const networkFailure of [false, true]) {
+      const events = [
+        { type: "action", id: "submit", values: { points: clickedPoints } },
+      ];
+      if (method === "sms")
+        events.push({
+          type: "action",
+          id: "submit",
+          values: { code: "123456" },
+        });
+      const native = nativeDialogs(events);
+      const host = plugin(
+        (url) => {
+          if (
+            url.includes(`/login/${method === "password" ? "passwd" : "sms"}`)
+          ) {
+            if (networkFailure) throw new Error("private request details");
+            return {
+              status: 200,
+              body: '{"errno":103,"errmsg":"invalid credentials"}',
+            };
+          }
+        },
+        { ui: native.ui },
+      );
+      await assert.rejects(
+        host.source.account.login(
+          method === "sms" ? "13800000000" : "user",
+          "password",
+          loginContext(method),
+        ),
+        networkFailure ? /网络请求失败/ : /invalid credentials/,
+      );
+      assert.equal(native.closed, 1);
+      assert.equal(host.secrets.size, 0);
+      assert.equal(
+        host.requests.filter((r) => /\/login\//.test(r.url.pathname)).length,
+        1,
+      );
+    }
+  }
+});
+
+test("v1 dialogs and unavailable native UI keep the legacy login path", async () => {
+  for (const ui of [
+    {
+      openDialog: async () => {
+        throw new Error("v1 must use legacy");
+      },
+    },
+    { prompt: async () => {}, isAvailable: async () => false },
+  ]) {
+    const host = plugin(undefined, { ui });
+    await host.source.account.login(
+      "user",
+      "password",
+      loginContext("password"),
+    );
+    assert.equal(host.secrets.get("session"), "test-session");
+  }
+});
+
+test("closing native UI during authentication ignores late success", async () => {
+  for (const method of ["password", "sms"]) {
+    const events = [
+      { type: "action", id: "submit", values: { points: clickedPoints } },
+    ];
+    if (method === "sms")
+      events.push({ type: "action", id: "submit", values: { code: "123456" } });
+    const native = nativeDialogs(events);
+    const host = plugin(
+      (url) => {
+        if (url.includes(`/login/${method === "password" ? "passwd" : "sms"}`))
+          native.cancel();
+      },
+      { ui: native.ui },
+    );
+    await assert.rejects(
+      host.source.account.login(
+        method === "sms" ? "13800000000" : "user",
+        "password",
+        loginContext(method),
+      ),
+      /plugin_ui_closed/,
+    );
+    assert.equal(native.closed, 1);
+    assert.equal(host.secrets.size, 0);
+    assert.equal(
+      host.requests.some((r) => r.url.pathname.endsWith("/v1/userInfo/get")),
+      false,
+    );
+  }
+});
 
 test("password login submits the user's ordered captcha points and verifies the session", async () => {
   const { source, requests, secrets, storage } = plugin();

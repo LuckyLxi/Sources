@@ -94,7 +94,11 @@ interface SourceLoginContext {
     callbacks?: {origin: string; path: string; requiredQueryKeys?: string[]}[];
     /** Default callback. Manual completion may omit callbacks. */
     completion?: 'callback' | 'manual';
-    /** Required exact names, imported only from this isolated browser. */
+    /** Required exact names, including HttpOnly, imported only from this browser.
+     * Also binds the actual WebView UA to each exact HTTPS origin (including port).
+     * Overrides explicit HTTP UA; Cookie and UA commit/rollback together.
+     * Existing cookie sessions need reauthorization to establish the UA binding.
+     */
     cookieScopes?: {url: string; names: string[]}[];
     timeoutMs?: number;
   }): Promise<{status: 'completed'; url: string} | {status: 'timeout'}>;
@@ -118,6 +122,18 @@ interface SourceLoginContext {
       Promise<{status: 'refresh'} | {status: 'submitted'; points: {x: number; y: number}[]}>;
 }
 interface SourceProfile { token?: string; displayName?: string; avatarUrl?: string; }
+/** Same isolated browser options as login authorization. openWebView defaults to
+ * manual completion when callbacks are omitted, and callback completion otherwise.
+ */
+type SourceWebViewOptions = Parameters<SourceLoginContext['requestBrowserAuthorization']>[0];
+type SourceWebViewResult = Awaited<ReturnType<SourceLoginContext['requestBrowserAuthorization']>>
+  | {status: 'closed'; reason: 'plugin'};
+/** Await this request for its outcome, or call close() before it completes.
+ * close() also cancels queued requests and waits for exit/resource cleanup.
+ */
+interface SourceWebViewRequest extends Promise<SourceWebViewResult> {
+  close(): Promise<void>;
+}
 interface SourceSetting {
   title: SourceText; type: 'input' | 'select' | 'switch' | 'bool';
   default: string | number | boolean;
@@ -179,7 +195,12 @@ interface ImageLoadConfig {
   segments?: number;
 }
 type SourceActionLocation = 'plugin' | 'reading' | 'other' | 'lab' | 'advanced' | 'lines';
-/** Fixed UI slots. Buttons reuse the app's existing layout and callbacks. */
+/** Fixed UI slots. Buttons reuse the app's existing layout and callbacks.
+ * checkIn and resetDeviceInfo check presentation.menus['plugin.buttons.<id>'];
+ * {value: 'default'} runs the existing host callback. copyComicId always copies
+ * directly. autoCheckIn and relatedComics remain a switch
+ * and a tab; imageQuality uses the existing reader.imageQuality selection menu.
+ */
 type SourceButton = (
   | {id: 'checkIn'; location: 'homeProfile'}
   | {id: 'autoCheckIn'; location: 'other'}
@@ -188,7 +209,25 @@ type SourceButton = (
   | {id: 'imageQuality'; location: 'reading' | 'reader'}
   | {id: 'resetDeviceInfo'; location: 'advanced'; action: string}
 ) & {title?: SourceText; subtitle?: SourceText; successMessage?: SourceText};
+/** Shared menu declarations. Each item selects a host value, runs an action,
+ * or opens a submenu. Up to four levels and 100 items per menu.
+ */
+type SourceMenuEntry =
+  | {value: string; title?: SourceText; order?: never; action?: never; id?: never; children?: never}
+  | {order: string; title?: SourceText; value?: never; action?: never; id?: never; children?: never}
+  | {action: string; title: SourceText; value?: never; order?: never; id?: never; children?: never}
+  | {id: string; title: SourceText; children: SourceMenuEntry[]; value?: never; order?: never; action?: never};
+/** Compatibility alias; use SourceMenuEntry and presentation.menus for new menus. */
+type SourceFavoriteMenuEntry = SourceMenuEntry;
 interface SourcePresentation {
+  /** Arbitrary host menu IDs, matched by SourcePluginMenuBinding.menuId.
+   * Omitted/empty declarations keep the original menu. Unsupported values are
+   * ignored; omitted supported host values are appended in selection menus.
+   * Button/action menus use plugin.buttons.<id> / plugin.actions.<id>; their only
+   * host value is 'default' (the original operation), which is never auto-appended.
+   * Omit its title to use the original button title. Actions call actions[id]().
+   */
+  menus?: Record<string, SourceMenuEntry[]>;
   /** Every button must explicitly name its existing UI slot. */
   buttons?: SourceButton[];
   searchOrders?: Record<string, string | Record<string, string>>; searchDefaultOrder?: string;
@@ -202,6 +241,9 @@ interface SourcePresentation {
   localFavoriteOrders?: Record<string, 'savedNewest' | 'savedOldest' | 'updatedNewest'>;
   /** Display labels for cloud favorite orders; unknown unlabeled orders show their code. */
   favoriteOrderLabels?: Record<string, SourceText>;
+  /** Legacy alias for menus['favorites.cloud.sort']; an explicitly declared
+   * menus entry (including []) takes precedence. Other menus use menus[menuId]. */
+  favoriteMenu?: SourceFavoriteMenuEntry[];
   favoriteOrders?: string[]; favoriteDefaultOrder?: string; favoriteOrderSetting?: string;
   requiresLogin?: boolean; dailyCheckIn?: boolean; skipPeriodicRelogin?: boolean;
   /** Explicit opt-in for both the detail comments tab and reader comments entry.
@@ -227,7 +269,9 @@ interface SourcePresentation {
   refreshCloudFavorites?: boolean;
   imageQualitySetting?: string; imageQualityDefault?: string;
   imageQualityOptions?: Record<string, string>; imageQualityTitle?: string;
-  /** Omitted location displays the action in this plugin's settings page. */
+  /** Omitted location displays the action in this plugin's settings page.
+   * All locations automatically support menus['plugin.actions.<id>'].
+   */
   actions?: {id: string; title: SourceText; location?: SourceActionLocation}[];
 }
 interface HazukiSourceDefinition {
@@ -302,6 +346,8 @@ interface HazukiSourceDefinition {
      */
     loadFolders?: (comicId: string | null) => Awaitable<{folders: Record<string, string>; favorited?: string[]}>;
     addFolder?: (name: string) => Awaitable<void>;
+    /** Enables long-press renaming in cloud favorites. Keep the folder ID unchanged; throw on failure. */
+    renameFolder?: (id: string, name: string) => Awaitable<void>;
     deleteFolder?: (id: string) => Awaitable<void>;
     addOrDelFavorite?: (comicId: string, folderId: string, adding: boolean, favoriteId?: string | null) => Awaitable<void>;
   };
@@ -318,7 +364,79 @@ interface HazukiSourceDefinition {
   /** Optional text resources embedded in this JS file. */
   resources?: Record<string, string>;
 }
+/** Native foreground dialogs. All text uses the plugin's normal localization. */
+type SourceDialogImage = SourceLoginImage;
+type SourceDialogValue = string | string[] | boolean | {x: number; y: number}[];
+type SourceDialogCloseReason = 'user' | 'plugin' | 'ownerGone' | 'superseded' |
+  'sourceChanged' | 'background' | 'timeout' | 'runtimeDisposed' | 'operationFinished';
+type SourceDialogComponent = {id: string} & (
+  | {type: 'text'; text: SourceText; tone?: 'normal' | 'error' | 'secondary'}
+  | {type: 'image'; image: SourceDialogImage; description?: SourceText}
+  | {type: 'input'; label: SourceText; initialValue?: string; placeholder?: SourceText;
+      obscure?: boolean; keyboardType?: 'text' | 'number'; required?: boolean; maxLength?: number}
+  | {type: 'select'; label: SourceText; options: {value: string; label: SourceText}[];
+      multiple?: boolean; initialValue?: string | string[]; required?: boolean; notifyChange?: boolean}
+  | {type: 'toggle'; label: SourceText; initialValue?: boolean; notifyChange?: boolean}
+  | {type: 'clickImage'; image: SourceDialogImage; hintImage?: SourceDialogImage;
+      description?: SourceText; pointCount?: number}
+  | {type: 'progress'; text?: SourceText; value?: number}
+  | {type: 'divider'}
+);
+interface SourceDialogButton {
+  id: string; text: SourceText; role?: 'primary' | 'secondary'; enabled?: boolean; validate?: boolean;
+}
+interface SourceDialogOptions {
+  title: SourceText; content: SourceDialogComponent[]; buttons: SourceDialogButton[];
+}
+interface SourceDialogPatch {
+  title?: SourceText; content?: SourceDialogComponent[]; buttons?: SourceDialogButton[];
+  values?: Record<string, SourceDialogValue>; busy?: boolean;
+  /** Replaces field errors; omitted updates clear errors, null entries clear that field. */
+  fieldErrors?: Record<string, SourceText | null>;
+}
+interface SourceSimpleDialogOptions {
+  title: SourceText; message?: SourceText; confirmText?: SourceText; cancelText?: SourceText;
+}
+interface SourcePromptOptions extends SourceSimpleDialogOptions {
+  label: SourceText; initialValue?: string; placeholder?: SourceText; obscure?: boolean;
+  keyboardType?: 'text' | 'number'; required?: boolean; maxLength?: number;
+}
+type SourceDialogEvent =
+  | {type: 'action' | 'change'; id: string; values: Record<string, SourceDialogValue>}
+  | {type: 'closed'; reason: SourceDialogCloseReason};
+interface SourcePluginDialog {
+  nextEvent(): Promise<SourceDialogEvent>;
+  update(patch: SourceDialogPatch): Promise<void>;
+  close(): Promise<void>;
+}
+interface SourcePluginDialogCancelledError extends Error {
+  readonly code: 'plugin_ui_cancelled'; readonly reason: SourceDialogCloseReason;
+}
+
 declare const Hazuki: {
+  /** Optional API v1 extension: feature-detect on older hosts. Available to all
+   * plugin operations, including initialization, background work and callbacks.
+   * Requests made while the app is backgrounded wait for foreground display.
+   */
+  ui: {
+    isAvailable(): Promise<boolean>;
+    /** Opens the isolated WebView outside login too. Explicit cookieScopes import
+     * cookies and the actual browser UA into this plugin's session on completion.
+     * Login runtimes retain their existing staged commit/rollback semantics.
+     */
+    openWebView(options: SourceWebViewOptions): SourceWebViewRequest;
+    /** Same behavior as the login context API, available from any plugin task. */
+    requestBrowserAuthorization(options: SourceWebViewOptions): SourceWebViewRequest;
+    alert(options: SourceSimpleDialogOptions): Promise<void>;
+    confirm(options: SourceSimpleDialogOptions): Promise<boolean>;
+    prompt(options: SourcePromptOptions): Promise<string | null>;
+    /** Plugin chooses when to open, including after HTTP/Promise waits or in a
+     * retained callback. Multiple requests share the global display queue.
+     * Page changes do not revoke UI; explicit task/runtime cancellation still does.
+     */
+    openDialog(options: SourceDialogOptions): Promise<SourcePluginDialog>;
+    PluginDialogCancelledError: new (reason?: SourceDialogCloseReason) => SourcePluginDialogCancelledError;
+  };
   readonly apiVersion: 1;
   /** Current app language; changes without reloading the plugin. */
   readonly locale: 'zh_CN' | 'en_US';

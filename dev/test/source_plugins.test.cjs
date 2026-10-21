@@ -19,7 +19,7 @@ function plugin(id, respond = () => ({ status: 200, data: {} }), initial = {}) {
     const result = await respond(request, requests);
     return {
       status: result.status ?? 200,
-      headers: {},
+      headers: result.headers ?? {},
       body: result.body ?? JSON.stringify(result.data),
     };
   };
@@ -70,6 +70,9 @@ function plugin(id, respond = () => ({ status: 200, data: {} }), initial = {}) {
     },
     error: (code, message) =>
       new Error("hazuki_" + code.toLowerCase() + ": " + message),
+    locale: "zh_CN",
+    translate: (text) =>
+      typeof text === "string" ? text : text.zh || text.en || "",
   };
   // Deliberately expose only API v1; legacy app globals are unavailable.
   const context = vm.createContext({ Hazuki: api });
@@ -247,6 +250,597 @@ test("JM normalizes ID detail input and reports failures after keyword fallback"
     /hazuki_auth_expired/,
   );
   assert.equal(expired.requests.length, 2);
+});
+
+test("JM treats an existing vote as success and rejects unlike before a request", async () => {
+  const app = plugin("jm", (request) =>
+    jmResponse(request, { code: 200, msg: "已經評價！" }),
+  );
+  await app.source.comic.likeComic("12345", true);
+  assert.equal(app.requests.length, 1);
+  await assert.rejects(
+    app.source.comic.likeComic("12345", false),
+    /不支持取消点赞|support unliking/,
+  );
+  assert.equal(app.requests.length, 1);
+  const failed = plugin("jm", (request) =>
+    jmResponse(request, { code: 500, msg: "busy" }),
+  );
+  await assert.rejects(failed.source.comic.likeComic("12345", true), /busy/);
+});
+
+test("JM clears a folder with one request", async () => {
+  let cleared = false;
+  const app = plugin("jm", (request) => {
+    const url = new URL(request.url);
+    if (url.pathname === "/favorite_folder") {
+      const body = new URLSearchParams(String(request.body || ""));
+      assert.equal(body.get("type"), "clear");
+      assert.equal(body.get("folder_id"), "9");
+      cleared = true;
+      return jmResponse(request, { status: "ok", msg: "cleared" });
+    }
+    if (url.pathname === "/favorite") {
+      return jmResponse(request, {
+        folder_list: cleared ? [] : [{ FID: "9", name: "Test" }],
+      });
+    }
+    return jmResponse(request, {});
+  });
+  await app.source.favorites.deleteFolder("9");
+  assert.equal(app.requests.length, 2);
+  assert.equal(cleared, true);
+  const failed = plugin("jm", (request) =>
+    jmResponse(request, { status: "fail", msg: "clear rejected" }),
+  );
+  await assert.rejects(
+    failed.source.favorites.deleteFolder("9"),
+    /clear rejected/,
+  );
+});
+
+test("JM renames a folder through the edit action", async () => {
+  const app = plugin("jm", (request) => {
+    assert.equal(new URL(request.url).pathname, "/favorite_folder");
+    const body = new URLSearchParams(String(request.body || ""));
+    assert.equal(body.get("type"), "edit");
+    assert.equal(body.get("folder_id"), "9");
+    assert.equal(body.get("folder_name"), "New name");
+    return jmResponse(request, { status: "ok", msg: "ok" });
+  });
+  await app.source.favorites.renameFolder("9", "New name");
+  assert.equal(app.requests.length, 1);
+  const failed = plugin("jm", (request) =>
+    jmResponse(request, { status: "fail", msg: "rename rejected" }),
+  );
+  await assert.rejects(
+    failed.source.favorites.renameFolder("9", "New name"),
+    /rename rejected/,
+  );
+});
+
+function jmFavoritePages(totals = { 0: 45, 9: 21 }) {
+  const app = plugin("jm", (request) => {
+    const url = new URL(request.url);
+    assert.equal(url.pathname, "/favorite");
+    const folder = url.searchParams.get("folder_id");
+    const total = totals[folder] ?? 0;
+    const page = Number(url.searchParams.get("page"));
+    assert.ok(page >= 1);
+    assert.ok(["mr", "mp"].includes(url.searchParams.get("o")));
+    const start = (page - 1) * 20;
+    const list = Array.from(
+      { length: Math.max(0, Math.min(20, total - start)) },
+      (_, index) => ({ id: String(start + index + 1), name: "Favorite" }),
+    );
+    return jmResponse(request, { list, total: String(total) });
+  });
+  return {
+    ...app,
+    totals,
+    pages: () =>
+      app.requests.map((request) => {
+        const query = new URL(request.url).searchParams;
+        return [
+          query.get("folder_id"),
+          query.get("o"),
+          Number(query.get("page")),
+        ];
+      }),
+  };
+}
+
+test("JM declares forward and reverse submenus for both favorite orders", () => {
+  const { presentation, settings } = plugin("jm").source;
+  assert.equal(presentation.favoriteDefaultOrder, "mr");
+  assert.equal(presentation.favoriteOrderAliases["-datetime_updated"], "mp");
+  assert.deepEqual(Array.from(presentation.favoriteOrders), [
+    "mr",
+    "mr_reverse",
+    "mp",
+    "mp_reverse",
+  ]);
+  assert.deepEqual(
+    Array.from(settings.favoriteOrder.options, (item) => item.value),
+    Array.from(presentation.favoriteOrders),
+  );
+  for (const [index, order] of ["mr", "mp"].entries()) {
+    const group = presentation.favoriteMenu[index];
+    assert.ok(group.title.zh);
+    assert.ok(group.title.en);
+    assert.deepEqual(
+      Array.from(group.children, (item) => item.order),
+      [order, `${order}_reverse`],
+    );
+    assert.deepEqual(
+      Array.from(group.children, (item) => item.title.zh),
+      ["正序", "倒序"],
+    );
+  }
+});
+
+for (const order of ["mr", "mp"]) {
+  test(`JM forward ${order} favorites request pages 1, 2, 3 without reversing`, async () => {
+    const app = jmFavoritePages();
+    app.settings.set("favoriteOrder", order);
+    const ids = [];
+    for (let page = 1; page <= 3; page++) {
+      const result = await app.source.favorites.loadComics(page, null);
+      assert.equal(result.maxPage, 3);
+      ids.push(...result.comics.map((comic) => comic.id));
+    }
+    assert.deepEqual(app.pages(), [
+      ["0", order, 1],
+      ["0", order, 2],
+      ["0", order, 3],
+    ]);
+    assert.deepEqual(
+      ids,
+      Array.from({ length: 45 }, (_, i) => String(i + 1)),
+    );
+  });
+
+  test(`JM reverse ${order} favorites count once then read pages 3, 2, 1 and reverse each array`, async () => {
+    const app = jmFavoritePages();
+    app.settings.set("favoriteOrder", `${order}_reverse`);
+    const ids = [];
+    for (let page = 1; page <= 3; page++) {
+      const result = await app.source.favorites.loadComics(page, "0");
+      assert.equal(result.maxPage, 3);
+      assert.equal(result.comics.length, page === 1 ? 5 : 20);
+      ids.push(...result.comics.map((comic) => comic.id));
+    }
+    assert.deepEqual(app.pages(), [
+      ["0", order, 1],
+      ["0", order, 3],
+      ["0", order, 2],
+      ["0", order, 1],
+    ]);
+    assert.deepEqual(
+      ids,
+      Array.from({ length: 45 }, (_, i) => String(45 - i)),
+    );
+    const count = app.requests.length;
+    const exhausted = await app.source.favorites.loadComics(4, "0");
+    assert.deepEqual(Array.from(exhausted.comics), []);
+    assert.equal(exhausted.maxPage, 3);
+    assert.equal(app.requests.length, count);
+  });
+}
+
+for (const total of [0, 1, 20, 40]) {
+  test(`JM reverse favorites handle ${total} items without requesting a nonexistent page`, async () => {
+    const app = jmFavoritePages({ 0: total });
+    app.settings.set("favoriteOrder", "mr_reverse");
+    const ids = [];
+    const pages = Math.ceil(total / 20);
+    for (let page = 1; page <= Math.max(1, pages); page++) {
+      const result = await app.source.favorites.loadComics(page, null);
+      assert.equal(result.maxPage, pages);
+      ids.push(...result.comics.map((comic) => comic.id));
+    }
+    assert.deepEqual(
+      ids,
+      Array.from({ length: total }, (_, i) => String(total - i)),
+    );
+    assert.equal(app.requests.length, pages <= 1 ? 1 : 3);
+  });
+}
+
+test("JM favorite pagination resets on direction changes, refresh and folder changes", async () => {
+  const app = jmFavoritePages();
+  app.settings.set("favoriteOrder", "mr_reverse");
+  assert.equal(
+    (await app.source.favorites.loadComics(1, "0")).comics[0].id,
+    "45",
+  );
+  app.settings.set("favoriteOrder", "mr");
+  assert.equal(
+    (await app.source.favorites.loadComics(1, "0")).comics[0].id,
+    "1",
+  );
+  app.totals[0] = 65;
+  app.settings.set("favoriteOrder", "mr_reverse");
+  let result = await app.source.favorites.loadComics(1, "0");
+  assert.equal(result.maxPage, 4);
+  assert.equal(result.comics[0].id, "65");
+  result = await app.source.favorites.loadComics(1, "9");
+  assert.equal(result.maxPage, 2);
+  assert.equal(result.comics[0].id, "21");
+  result = await app.source.favorites.loadComics(2, "0");
+  assert.equal(result.maxPage, 4);
+  assert.equal(result.comics[0].id, "60");
+  app.totals[0] = 2;
+  result = await app.source.favorites.loadComics(1, "0");
+  assert.equal(result.maxPage, 1);
+  assert.deepEqual(
+    Array.from(result.comics, (comic) => comic.id),
+    ["2", "1"],
+  );
+});
+
+test("JM reverse favorites retry a failed data page using the same logical page", async () => {
+  let fail = true;
+  const app = plugin("jm", (request) => {
+    const page = Number(new URL(request.url).searchParams.get("page"));
+    if (page === 2 && fail) throw new Error("data page unavailable");
+    return jmResponse(request, {
+      total: 21,
+      list: [{ id: String(page), name: "Favorite" }],
+    });
+  });
+  app.settings.set("favoriteOrder", "mr_reverse");
+  await assert.rejects(
+    app.source.favorites.loadComics(1, "9"),
+    /data page unavailable/,
+  );
+  fail = false;
+  const result = await app.source.favorites.loadComics(1, "9");
+  assert.equal(result.maxPage, 2);
+  assert.equal(result.comics[0].id, "2");
+});
+
+test("JM late reverse counts cannot overwrite a newer refresh snapshot", async () => {
+  let releaseOldCount;
+  let signalStarted;
+  const oldCount = new Promise((resolve) => {
+    releaseOldCount = resolve;
+  });
+  const started = new Promise((resolve) => {
+    signalStarted = resolve;
+  });
+  let countRequests = 0;
+  const app = plugin("jm", async (request) => {
+    const page = Number(new URL(request.url).searchParams.get("page"));
+    if (page === 1 && ++countRequests === 1) {
+      signalStarted();
+      await oldCount;
+      return jmResponse(request, { total: 45, list: [] });
+    }
+    return jmResponse(request, {
+      total: 65,
+      list: [{ id: String(page), name: "Favorite" }],
+    });
+  });
+  app.settings.set("favoriteOrder", "mr_reverse");
+  const oldLoad = app.source.favorites.loadComics(1, "9");
+  await started;
+  const fresh = await app.source.favorites.loadComics(1, "9");
+  assert.equal(fresh.maxPage, 4);
+  releaseOldCount();
+  await oldLoad;
+  const next = await app.source.favorites.loadComics(2, "9");
+  assert.equal(next.maxPage, 4);
+  assert.equal(new URL(app.requests.at(-1).url).searchParams.get("page"), "3");
+});
+
+test("JM reports the real folder that contains a favorited comic", async () => {
+  const app = plugin("jm", (request) => {
+    const url = new URL(request.url);
+    if (url.pathname === "/album") {
+      return jmResponse(request, { is_favorite: true });
+    }
+    if (url.pathname === "/favorite") {
+      if (url.searchParams.get("folder_id") === "9") {
+        return jmResponse(request, {
+          list: [{ id: "12345", name: "Comic" }],
+          total: 1,
+        });
+      }
+      return jmResponse(request, {
+        folder_list: [{ FID: "9", name: "Folder" }],
+      });
+    }
+    return jmResponse(request, {});
+  });
+  const result = await app.source.favorites.loadFolders("12345");
+  assert.equal(result.folders["9"], "Folder");
+  assert.deepEqual(Array.from(result.favorited), ["9"]);
+
+  const unfiled = plugin("jm", (request) => {
+    const url = new URL(request.url);
+    if (url.pathname === "/album") {
+      return jmResponse(request, { is_favorite: true });
+    }
+    if (url.pathname === "/favorite") {
+      if (url.searchParams.has("folder_id")) {
+        return jmResponse(request, { list: [], total: 0 });
+      }
+      return jmResponse(request, {
+        folder_list: [{ FID: "9", name: "Folder" }],
+      });
+    }
+    return jmResponse(request, {});
+  });
+  assert.deepEqual(
+    Array.from((await unfiled.source.favorites.loadFolders("12345")).favorited),
+    ["0"],
+  );
+});
+
+test("JM moves an existing favorite without toggling it off", async () => {
+  let favorite = true;
+  const app = plugin("jm", (request) => {
+    const url = new URL(request.url);
+    if (url.pathname === "/album") {
+      return jmResponse(request, { is_favorite: favorite });
+    }
+    if (url.pathname === "/favorite") {
+      favorite = !favorite;
+      return jmResponse(request, { code: 200 });
+    }
+    if (url.pathname === "/favorite_folder") {
+      return jmResponse(request, { status: "ok", msg: "moved" });
+    }
+    return jmResponse(request, {});
+  });
+  const paths = () =>
+    app.requests.map((request) => new URL(request.url).pathname);
+
+  app.requests.length = 0;
+  await app.source.favorites.addOrDelFavorite("12345", "9", true);
+  assert.equal(favorite, true);
+  assert.deepEqual(paths(), ["/album", "/favorite_folder"]);
+  const move = new URLSearchParams(app.requests[1].body);
+  assert.equal(move.get("type"), "move");
+  assert.equal(move.get("folder_id"), "9");
+
+  app.requests.length = 0;
+  await app.source.favorites.addOrDelFavorite("12345", "0", true);
+  assert.equal(favorite, true);
+  assert.deepEqual(paths(), ["/album", "/favorite", "/favorite"]);
+
+  app.requests.length = 0;
+  await app.source.favorites.addOrDelFavorite("12345", "9", false);
+  assert.equal(favorite, false);
+  assert.deepEqual(paths(), ["/album", "/favorite"]);
+
+  app.requests.length = 0;
+  await app.source.favorites.addOrDelFavorite("12345", "9", true);
+  assert.equal(favorite, true);
+  assert.deepEqual(paths(), ["/album", "/favorite", "/favorite_folder"]);
+});
+
+test("JM declares nested comment replies", () => {
+  assert.equal(plugin("jm").source.presentation.commentReplies, true);
+});
+
+test("JM maps root replies and nested reply threads", async () => {
+  const app = plugin("jm", (request) => {
+    if (new URL(request.url).pathname === "/forum") {
+      return jmResponse(request, {
+        total: 1,
+        list: [
+          {
+            CID: "1",
+            username: "root",
+            content: "root",
+            addtime: "t0",
+            replys: [
+              {
+                CID: "2",
+                parent_CID: "1",
+                username: "a",
+                content: "r1",
+                addtime: "t1",
+              },
+              {
+                CID: "3",
+                parent_CID: "2",
+                username: "b",
+                content: "r2",
+                addtime: "t2",
+              },
+            ],
+          },
+        ],
+      });
+    }
+    return jmResponse(request, {});
+  });
+  const roots = await app.source.comic.loadComments("781", null, 1, null);
+  assert.equal(roots.comments.length, 1);
+  assert.equal(roots.comments[0].id, "1");
+  assert.equal(roots.comments[0].replyCount, 2);
+  const replies = await app.source.comic.loadComments("781", null, 1, "1");
+  assert.deepEqual(
+    Array.from(replies.comments, (comment) => comment.id),
+    ["2", "3"],
+  );
+  assert.equal(replies.comments[0].replyCount, 1);
+  assert.equal(replies.comments[1].content, "@a r2");
+  const nested = await app.source.comic.loadComments("781", null, 1, "2");
+  assert.deepEqual(
+    Array.from(nested.comments, (comment) => comment.id),
+    ["3"],
+  );
+});
+
+test("JM posts replies with comment_id", async () => {
+  const app = plugin("jm", (request) => {
+    assert.equal(new URL(request.url).pathname, "/comment");
+    const body = new URLSearchParams(String(request.body || ""));
+    assert.equal(body.get("aid"), "123");
+    assert.equal(body.get("comment"), "hi");
+    assert.equal(body.get("comment_id"), "2");
+    assert.equal(body.has("status"), false);
+    return jmResponse(request, { status: "ok", msg: "ok" });
+  });
+  await app.source.comic.sendComment("123", null, "hi", "2");
+  assert.equal(app.requests.length, 1);
+  const auth = plugin("jm", (request) =>
+    jmResponse(request, { type: "auth_fail" }),
+  );
+  await assert.rejects(
+    auth.source.comic.sendComment("123", null, "hi", null),
+    /hazuki_auth_expired/,
+  );
+});
+
+test("JM authorizes web comments on the first send", async () => {
+  let webOptions;
+  let openCount = 0;
+  let closeCount = 0;
+  const app = plugin("jm", (request) => {
+    const url = new URL(request.url);
+    if (url.host === "18comic.vip" && url.pathname === "/") {
+      return { status: 200, data: {} };
+    }
+    assert.equal(url.pathname, "/ajax/album_comment");
+    return { status: 200, data: { status: "ok" } };
+  });
+  app.context.Hazuki.http.fetchBytes = async (method, url) => {
+    assert.equal(method, "GET");
+    assert.match(url, /\/captcha/);
+    return {
+      status: 200,
+      headers: {},
+      body: new Uint8Array([1, 2, 3]).buffer,
+    };
+  };
+  app.context.Hazuki.ui = {
+    isAvailable: async () => true,
+    openWebView: (options) => {
+      openCount += 1;
+      webOptions = options;
+      const view = Promise.resolve({
+        status: "completed",
+        url: "https://18comic.vip/",
+      });
+      view.close = async () => {
+        closeCount += 1;
+      };
+      return view;
+    },
+    openDialog: async () => ({
+      nextEvent: async () => ({
+        type: "action",
+        id: "submit",
+        values: { code: "35" },
+      }),
+      update: async () => {},
+      close: async () => {},
+    }),
+  };
+  await app.source.comic.sendComment("287234", null, "hi", null);
+  assert.equal(openCount, 1);
+  assert.equal(closeCount, 1);
+  assert.equal(app.storage.get("webSession"), true);
+  assert.equal(webOptions.completion, "manual");
+  assert.deepEqual(
+    Array.from(webOptions.cookieScopes[0].names),
+    ["AVS", "cf_clearance"],
+  );
+  assert.equal(new URL(app.requests[0].url).host, "18comic.vip");
+  assert.equal(new URL(app.requests[0].url).pathname, "/");
+  assert.equal(new URL(app.requests[1].url).pathname, "/ajax/album_comment");
+
+  await app.source.comic.sendComment("287234", null, "again", null);
+  assert.equal(openCount, 1);
+});
+
+test("JM falls back to app comments when web authorization is declined", async () => {
+  const app = plugin("jm", (request) => {
+    assert.equal(new URL(request.url).pathname, "/comment");
+    return jmResponse(request, { status: "ok" });
+  });
+  app.context.Hazuki.ui = {
+    isAvailable: async () => true,
+    openWebView: async () => ({ status: "timeout" }),
+  };
+  await app.source.comic.sendComment("123", null, "hi", null);
+  assert.equal(app.requests.length, 1);
+  assert.equal(new URL(app.requests[0].url).pathname, "/comment");
+  assert.equal(app.storage.get("webSession"), undefined);
+});
+
+test("JM reports whether the web comment session is active", async () => {
+  const app = plugin(
+    "jm",
+    (request) => {
+      assert.equal(new URL(request.url).host, "18comic.vip");
+      return { status: 200, data: {} };
+    },
+    { webSession: true },
+  );
+  assert.match(await app.source.actions.webCommentStatus(), /有效/);
+  const off = plugin("jm");
+  assert.match(await off.source.actions.webCommentStatus(), /未启用/);
+});
+
+test("JM posts web comments with captcha and reply fields", async () => {
+  let dialogOptions;
+  const app = plugin(
+    "jm",
+    (request) => {
+      assert.equal(
+        new URL(request.url).pathname,
+        "/ajax/album_comment",
+      );
+      return { status: 200, data: { status: "ok" } };
+    },
+    { webSession: true },
+  );
+  app.context.Hazuki.http.fetchBytes = async (method, url) => {
+    assert.equal(method, "GET");
+    assert.match(url, /\/captcha/);
+    return {
+      status: 200,
+      headers: {},
+      body: new Uint8Array([1, 2, 3]).buffer,
+    };
+  };
+  app.context.Hazuki.ui = {
+    isAvailable: async () => true,
+    openDialog: async (options) => {
+      dialogOptions = options;
+      return {
+        nextEvent: async () => ({
+          type: "action",
+          id: "submit",
+          values: { code: "35" },
+        }),
+        update: async () => {},
+        close: async () => {},
+      };
+    },
+  };
+  await app.source.comic.sendComment("287234", null, "hi", null);
+  assert.equal(app.requests.length, 1);
+  const body = new URLSearchParams(app.requests[0].body);
+  assert.equal(body.get("video_id"), "287234");
+  assert.equal(body.get("comment"), "hi");
+  assert.equal(body.get("invite_verification"), "35");
+  assert.equal(body.get("status"), "false");
+  assert.equal(dialogOptions.content[1].type, "input");
+
+  app.requests.length = 0;
+  await app.source.comic.sendComment("287234", null, "reply", "2");
+  const replyBody = new URLSearchParams(app.requests[0].body);
+  assert.equal(replyBody.get("comment_id"), "2");
+  assert.equal(replyBody.get("is_reply"), "1");
+  assert.equal(replyBody.get("forum_subject"), "1");
+  assert.equal(replyBody.has("status"), false);
 });
 
 test("Picacg keeps list tags independent of plugin-defined info rows", () => {

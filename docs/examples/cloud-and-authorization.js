@@ -56,8 +56,9 @@ Hazuki.registerSource({
         });
         if (result.status === "timeout")
           throw Hazuki.error("AUTH_TIMEOUT", "Retry");
-        // The host has staged the explicitly scoped Cookie, including HttpOnly.
-        // Hazuki.http uses it; only a verified account permits transaction commit.
+        // The host stages the scoped Cookie (including HttpOnly) AND actual WebView UA.
+        // Hazuki.http applies both now, overriding a stale explicit UA for this origin.
+        // Only a verified account permits committing both; errors/cancel roll back.
         const profile = JSON.parse(
           (await Hazuki.http.get("https://example.com/account")).body,
         );

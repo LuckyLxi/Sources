@@ -13,7 +13,8 @@
 
 可选扩展示例：[登录交互、章节分组与进度上报](examples/host-capabilities.js)、
 [浏览器回调授权](examples/browser-authorization.js)、
-[网站阅读历史、外部应用授权与 Cookie 登录](examples/cloud-and-authorization.js)。
+[网站阅读历史、外部应用授权与 Cookie 登录](examples/cloud-and-authorization.js)、
+[通用表单、图形验证码与快捷弹窗](examples/dialog.js)。
 
 ## 本地检查
 

@@ -236,46 +236,195 @@ async function zaimanhuaVerifyToken(token) {
   };
 }
 
+async function zaimanhuaCreateCaptcha() {
+  const captcha = await zaimanhuaRequest(
+    "/lpi/v1/captcha/click/create",
+    {},
+    { anonymous: true },
+  );
+  const captchaId = zaimanhuaText(captcha.captchaId);
+  if (
+    !captchaId ||
+    !/^data:image\/(?:png|jpe?g|webp);base64,/i.test(
+      zaimanhuaText(captcha.bigImg),
+    ) ||
+    !/^data:image\/(?:png|jpe?g|webp);base64,/i.test(
+      zaimanhuaText(captcha.verifyImg),
+    )
+  )
+    throw new Error("再漫画：验证码数据异常");
+  // Only use metadata to specify the number of clicks. The user solves the
+  // challenge; no coordinates from the server are used as an answer.
+  let pointCount;
+  try {
+    const count = Object.keys(JSON.parse(zaimanhuaText(captcha.dots))).length;
+    if (count >= 1 && count <= 32) pointCount = count;
+  } catch {
+    /* Older responses may omit point-count metadata. */
+  }
+  return {
+    captchaId,
+    image: captcha.bigImg,
+    hintImage: captcha.verifyImg,
+    ...(pointCount ? { pointCount } : {}),
+  };
+}
+
 /** @param {SourceLoginContext} context @param {string} [message] */
 async function zaimanhuaCaptcha(
   context,
   message = "请按提示图中的顺序点击文字",
 ) {
   for (;;) {
-    const captcha = await zaimanhuaRequest(
-      "/lpi/v1/captcha/click/create",
-      {},
-      { anonymous: true },
-    );
-    const captchaId = zaimanhuaText(captcha.captchaId);
-    if (
-      !captchaId ||
-      !/^data:image\/(?:png|jpe?g|webp);base64,/i.test(
-        zaimanhuaText(captcha.bigImg),
-      ) ||
-      !/^data:image\/(?:png|jpe?g|webp);base64,/i.test(
-        zaimanhuaText(captcha.verifyImg),
-      )
-    )
-      throw new Error("再漫画：验证码数据异常");
-    // Only use metadata to specify the number of clicks. The user solves the
-    // challenge; no coordinates from the server are used as an answer.
-    let pointCount;
-    try {
-      const count = Object.keys(JSON.parse(zaimanhuaText(captcha.dots))).length;
-      if (count >= 1 && count <= 32) pointCount = count;
-    } catch {
-      /* Older responses may omit point-count metadata. */
-    }
+    const { captchaId, ...images } = await zaimanhuaCreateCaptcha();
     const answer = await context.requestClickCaptcha({
       title: "再漫画登录验证",
       message,
-      image: captcha.bigImg,
-      hintImage: captcha.verifyImg,
-      ...(pointCount ? { pointCount } : {}),
+      ...images,
     });
     if (answer.status === "refresh") continue;
     return { captchaId, points: answer.points };
+  }
+}
+
+/** @param {string} account @param {string} password @param {string} method
+ * @param {{captchaId: string, points: {x: number, y: number}[]}} captcha */
+async function zaimanhuaSubmitCaptcha(account, password, method, captcha) {
+  return method === "password"
+    ? zaimanhuaApi(
+        "/lpi/v1/login/passwd",
+        {
+          username: account.trim(),
+          passwd: Hazuki.convert.hexEncode(
+            Hazuki.convert.md5(Hazuki.convert.encodeUtf8(password)),
+          ),
+          captchaId: captcha.captchaId,
+          captchaResult: JSON.stringify(captcha.points),
+          captchaCate: 2,
+        },
+        { method: "POST", anonymous: true, allowError: true },
+      )
+    : zaimanhuaApi(
+        "/lpi/v1/sms/send",
+        {
+          phone: account.trim(),
+          type: 3,
+          digits: JSON.stringify(captcha.points),
+          captchaId: captcha.captchaId,
+          captchaCate: 2,
+        },
+        { anonymous: true, allowError: true },
+      );
+}
+
+/** @param {string} account @param {string} password @param {string} method */
+async function zaimanhuaDialogLogin(account, password, method) {
+  let captcha = await zaimanhuaCreateCaptcha();
+  /** @returns {SourceDialogComponent[]} */
+  const captchaContent = () => {
+    const { captchaId, ...images } = captcha;
+    return [
+      {
+        id: "points",
+        type: "clickImage",
+        ...images,
+        description: "请按提示图中的顺序点击文字",
+      },
+    ];
+  };
+  const dialog = await Hazuki.ui.openDialog({
+    title: "再漫画登录验证",
+    content: captchaContent(),
+    buttons: [
+      { id: "refresh", text: "刷新验证码" },
+      { id: "submit", text: "提交", role: "primary", validate: true },
+    ],
+  });
+  let sms = false;
+  try {
+    for (;;) {
+      const event = await dialog.nextEvent();
+      if (event.type === "closed")
+        throw new Hazuki.ui.PluginDialogCancelledError(event.reason);
+      if (!sms) {
+        if (event.id === "refresh") {
+          captcha = await zaimanhuaCreateCaptcha();
+          await dialog.update({
+            content: captchaContent(),
+            values: { points: [] },
+          });
+          continue;
+        }
+        const response = await zaimanhuaSubmitCaptcha(
+          account,
+          password,
+          method,
+          {
+            captchaId: captcha.captchaId,
+            points: /** @type {{x: number, y: number}[]} */ (
+              event.values.points
+            ),
+          },
+        );
+        if ([101, 102].includes(Number(response.errno))) {
+          captcha = await zaimanhuaCreateCaptcha();
+          await dialog.update({
+            content: captchaContent(),
+            values: { points: [] },
+            fieldErrors: { points: "验证未通过或已过期，请重新按提示顺序点击" },
+          });
+          continue;
+        }
+        if (Number(response.errno) !== 0)
+          throw new Error(
+            "再漫画：" + (zaimanhuaText(response.errmsg) || "登录失败"),
+          );
+        if (method === "password") {
+          // Reject late success if the user closed the window during the request.
+          await dialog.update({ busy: true });
+          return zaimanhuaText(response.data?.user?.token);
+        }
+        sms = true;
+        await dialog.update({
+          title: "输入短信验证码",
+          content: [
+            {
+              id: "message",
+              type: "text",
+              text: "验证码已发送到你输入的手机号",
+            },
+            {
+              id: "code",
+              type: "input",
+              label: "短信验证码",
+              keyboardType: "number",
+              required: true,
+            },
+          ],
+          buttons: [
+            { id: "submit", text: "登录", role: "primary", validate: true },
+          ],
+        });
+      } else {
+        const code = String(event.values.code).trim();
+        if (!/^\d+$/.test(code)) {
+          await dialog.update({ fieldErrors: { code: "短信验证码应为数字" } });
+          continue;
+        }
+        const data = await zaimanhuaRequest(
+          "/lpi/v1/login/sms",
+          {
+            phone: account.trim(),
+            sms_code: code,
+          },
+          { method: "POST", anonymous: true },
+        );
+        await dialog.update({ busy: true });
+        return zaimanhuaText(data.user?.token);
+      }
+    }
+  } finally {
+    await dialog.close();
   }
 }
 
@@ -346,36 +495,21 @@ async function zaimanhuaLogin(account, password, context) {
   let token = "";
   if (["wechat", "qq", "weibo"].includes(method)) {
     token = await zaimanhuaBrowserLogin(method, context);
+  } else if (
+    typeof Hazuki.ui?.prompt === "function" &&
+    (await Hazuki.ui.isAvailable())
+  ) {
+    token = await zaimanhuaDialogLogin(account, password, method);
   } else {
     let message;
     for (;;) {
       const captcha = await zaimanhuaCaptcha(context, message);
-      const response =
-        method === "password"
-          ? await zaimanhuaApi(
-              "/lpi/v1/login/passwd",
-              {
-                username: account.trim(),
-                passwd: Hazuki.convert.hexEncode(
-                  Hazuki.convert.md5(Hazuki.convert.encodeUtf8(password)),
-                ),
-                captchaId: captcha.captchaId,
-                captchaResult: JSON.stringify(captcha.points),
-                captchaCate: 2,
-              },
-              { method: "POST", anonymous: true, allowError: true },
-            )
-          : await zaimanhuaApi(
-              "/lpi/v1/sms/send",
-              {
-                phone: account.trim(),
-                type: 3,
-                digits: JSON.stringify(captcha.points),
-                captchaId: captcha.captchaId,
-                captchaCate: 2,
-              },
-              { anonymous: true, allowError: true },
-            );
+      const response = await zaimanhuaSubmitCaptcha(
+        account,
+        password,
+        method,
+        captcha,
+      );
       if ([101, 102].includes(Number(response.errno))) {
         message = "验证未通过或已过期，请重新按提示顺序点击";
         continue;
@@ -1114,7 +1248,7 @@ async function zaimanhuaLikeComment(id, _subId, commentId, isLike) {
 Hazuki.registerSource({
   id: "zaimanhua",
   name: "再漫画",
-  version: "1.5.1",
+  version: "1.6.0",
   apiVersion: 1,
   presentation: {
     showComments: true,
