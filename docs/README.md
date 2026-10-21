@@ -53,6 +53,11 @@ npm --prefix dev run index:check
 ```
 
 自动提交使用内置 `GITHUB_TOKEN`，仓库权限及分支规则须允许 bot 写入 `main`。
+索引提交成功（或索引无需变更）后，工作流会请求刷新所有插件下载链接及 `plugins.json`
+的 jsDelivr 缓存，无需额外配置密钥；手动运行工作流也会刷新。刷新请求有超时和最多
+三次尝试，并检查各 CDN 提供商结果；失败会让工作流报错，但不会撤销已提交的索引，可重跑工作流。
+注意：[jsDelivr 维护者说明](https://github.com/jsdelivr/jsdelivr/issues/18491)
+不保证分支链接的缓存刷新可靠生效，当前 `@main` 链接即使刷新接口成功，也可能暂时仍返回旧内容。
 [开发检查工作流](../.github/workflows/check.yml) 会执行静态检查、格式检查和测试。
 
 ## 宿主回归与许可

@@ -7,7 +7,9 @@ on:
       - "*.js"
       - "plugins.json"
       - "dev/scripts/update-plugin-index.cjs"
+      - "dev/scripts/purge-plugin-cache.cjs"
       - "dev/test/plugin_index.test.cjs"
+      - "dev/test/plugin_cache.test.cjs"
       - "dev/package.json"
       - "dev/package-lock.json"
       - ".github/workflows/update-plugin-index.yml"
@@ -40,8 +42,8 @@ jobs:
           cache-dependency-path: dev/package-lock.json
       - name: Install dependencies
         run: npm --prefix dev ci --ignore-scripts --no-audit --no-fund
-      - name: Test index generator
-        run: node --test dev/test/plugin_index.test.cjs
+      - name: Test index generator and cache purge
+        run: node --test dev/test/plugin_index.test.cjs dev/test/plugin_cache.test.cjs
       - name: Generate index
         run: npm --prefix dev run index:update
       - name: Commit index
@@ -56,3 +58,5 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git commit -m "chore: update plugin index"
           git push origin HEAD:main
+      - name: Purge jsDelivr cache
+        run: node dev/scripts/purge-plugin-cache.cjs

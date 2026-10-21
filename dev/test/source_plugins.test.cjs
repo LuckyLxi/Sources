@@ -269,33 +269,24 @@ test("JM treats an existing vote as success and rejects unlike before a request"
   await assert.rejects(failed.source.comic.likeComic("12345", true), /busy/);
 });
 
-test("JM clears a folder with one request", async () => {
-  let cleared = false;
+test("JM deletes a folder with one clear request", async () => {
   const app = plugin("jm", (request) => {
     const url = new URL(request.url);
-    if (url.pathname === "/favorite_folder") {
-      const body = new URLSearchParams(String(request.body || ""));
-      assert.equal(body.get("type"), "clear");
-      assert.equal(body.get("folder_id"), "9");
-      cleared = true;
-      return jmResponse(request, { status: "ok", msg: "cleared" });
-    }
-    if (url.pathname === "/favorite") {
-      return jmResponse(request, {
-        folder_list: cleared ? [] : [{ FID: "9", name: "Test" }],
-      });
-    }
-    return jmResponse(request, {});
+    assert.equal(url.pathname, "/favorite_folder");
+    const body = new URLSearchParams(String(request.body || ""));
+    assert.equal(body.get("type"), "clear");
+    assert.equal(body.get("folder_id"), "9");
+    return jmResponse(request, { status: "ok", msg: "deleted" });
   });
   await app.source.favorites.deleteFolder("9");
-  assert.equal(app.requests.length, 2);
-  assert.equal(cleared, true);
+  assert.equal(app.requests.length, 1);
+
   const failed = plugin("jm", (request) =>
-    jmResponse(request, { status: "fail", msg: "clear rejected" }),
+    jmResponse(request, { status: "fail", msg: "delete rejected" }),
   );
   await assert.rejects(
     failed.source.favorites.deleteFolder("9"),
-    /clear rejected/,
+    /delete rejected/,
   );
 });
 
@@ -349,6 +340,10 @@ function jmFavoritePages(totals = { 0: 45, 9: 21 }) {
       }),
   };
 }
+
+test("JM refreshes the cloud favorites list after favorite changes", () => {
+  assert.equal(plugin("jm").source.presentation.refreshCloudFavorites, true);
+});
 
 test("JM declares forward and reverse submenus for both favorite orders", () => {
   const { presentation, settings } = plugin("jm").source;

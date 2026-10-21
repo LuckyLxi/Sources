@@ -137,6 +137,8 @@ presentation: {showComments: true, commentReplies: true}
 
 可选 `favorites.renameFolder(id, name)` 用于重命名云端收藏夹，返回 `void` 或 `Promise<void>`，失败时抛出异常。只有提供此函数的插件才会启用收藏页云端模式的长按重命名；交互与本地模式相同，提交前会去除名称两端空白，空名称和未改变的名称不会提交。宿主传入原收藏夹 ID 和新名称，插件应保持 ID 不变；成功后宿主重新调用 `loadFolders(null)` 刷新名称，并保留当前收藏夹选择。旧版 `'0'`“全部”入口不能重命名。不提供此接口的插件保持原有行为。
 
+可选 `presentation.refreshCloudFavorites: true` 用于在收藏、取消收藏或移动漫画成功后自动刷新当前云端收藏页。宿主收到收藏变更后会重新加载当前收藏夹的第一页；未声明时保持原有行为。
+
 ## 宿主 SDK
 
 - `Hazuki.http`：通用 GET、POST 等请求，返回状态、响应头、正文和可选错误；网站状态含义由插件判断。

@@ -391,9 +391,13 @@ class JmSession {
   }
 
   /**
-   * JM calls this action "clear folder": one request deletes the folder and
-   * removes its comics from favorites. The ordinary delete action refuses a
-   * non-empty folder.
+   * Delete a favorite folder. "clear" deletes the folder and its comics in one
+   * request, even when the folder is not empty; the ordinary delete action
+   * refuses a non-empty folder. Do not re-read `/favorite` afterwards: that
+   * list can still contain the folder right after deletion, and treating that
+   * stale read as a failure makes the host keep the already-deleted folder.
+   * The mutation response may report HTTP-level success with a failed `status`,
+   * so it is checked explicitly.
    * @param {string} id
    */
   async deleteFolder(id) {
@@ -406,13 +410,8 @@ class JmSession {
       result.status === 'error' ||
       (typeof result.code === 'number' && result.code >= 400)
     ) {
-      throw new Error(result.msg || 'Failed to clear folder');
+      throw new Error(result.msg || 'Failed to delete folder');
     }
-    const data = await this.get('/favorite');
-    const stillThere = asArray(data.folder_list).some(
-      (folder) => String(folder.FID) === String(id),
-    );
-    if (stillThere) throw new Error('JM failed to delete folder');
   }
 
   /** @param {string} account @param {string} password */
@@ -919,6 +918,7 @@ const JM_PRESENTATION = {
   directComicIdRules: { patterns: [JM.idPattern], extractDigits: true },
   dailyRecommendation: { searchOrder: 'mr' },
   showComicId: true,
+  refreshCloudFavorites: true,
   listTagGroups: ['Tag'],
   favoriteOrderAliases: { '-datetime_updated': 'mp' },
   localFavoriteOrders: { mr: 'savedNewest', mp: 'updatedNewest' },
@@ -1024,7 +1024,7 @@ const JM_SETTINGS = {
 const source = {
   id: 'jm',
   name: 'JMComic',
-  version: '2.7.0',
+  version: '2.8.0',
   apiVersion: 1,
 
   async init() {
