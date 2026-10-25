@@ -30,6 +30,12 @@
       "name": "再漫画",
       "version": "1.6.0",
       "downloadUrl": "https://cdn.jsdelivr.net/gh/LuckyLxi/Sources@main/zaimanhua.js"
+    },
+    {
+      "id": "bzmgcn",
+      "name": "包子漫画",
+      "version": "1.3.0",
+      "downloadUrl": "https://cdn.jsdelivr.net/gh/LuckyLxi/Sources@main/bzmgcn.js"
     }
   ]
 }
