@@ -1,0 +1,432 @@
+{
+  "next": "/api/bzmhq/amp_comic_list?type=all&region=all&state=all&filter=*&page=3&limit=36&language=cn",
+  "items": [
+    {
+      "comic_id": "zhixiangduzhannidezhimutongxue-shichuanhui",
+      "type_names": [
+        "恋爱"
+      ],
+      "author": "市川彗",
+      "name": "只想独占你的只木同学",
+      "topic_img": "zhixiangduzhannidezhimutongxue-shichuanhui.jpg",
+      "region_name": "日本",
+      "region": "jp"
+    },
+    {
+      "comic_id": "gaowujinhuacongjuexingguaishouzhiwangkaishi-liangtaojinmanhua",
+      "type_names": [
+        "格斗"
+      ],
+      "author": "两套金漫画",
+      "name": "高武进化：从觉醒怪兽之王开始",
+      "topic_img": "gaowujinhuacongjuexingguaishouzhiwangkaishi-liangtaojinmanhua.jpg",
+      "region_name": "国漫",
+      "region": "cn"
+    },
+    {
+      "comic_id": "woduzishengji-duburedicestudio",
+      "type_names": [
+        "异能",
+        "韩漫",
+        "热血",
+        "剧情",
+        "都市",
+        "奇幻",
+        "少年",
+        "nixi"
+      ],
+      "author": "DUBU（REDICE STUDIO)",
+      "name": "我独自升级",
+      "topic_img": "woduzishengji-duburedicestudio.jpg",
+      "region_name": "韩国",
+      "region": "kr"
+    },
+    {
+      "comic_id": "douluodalu4zhongjidouluo-shenman",
+      "type_names": [
+        "zhandou",
+        "热血"
+      ],
+      "author": "神漫",
+      "name": "斗罗大陆4终极斗罗",
+      "topic_img": "douluodalu4zhongjidouluo-shenman.jpg",
+      "region_name": "国漫",
+      "region": "cn"
+    },
+    {
+      "comic_id": "quanqiuguiyishidai-heibaichayuanzhuqixiaoguai",
+      "type_names": [
+        "热血",
+        "都市",
+        "悬疑"
+      ],
+      "author": "黑白茶（原著）+奇小怪",
+      "name": "全球诡异时代",
+      "topic_img": "quanqiuguiyishidai-heibaichayuanzhuqixiaoguai.jpg",
+      "region_name": "国漫",
+      "region": "cn"
+    },
+    {
+      "comic_id": "quanzhiduzheshijiao-sleepcsingsyong",
+      "type_names": [
+        "奇幻"
+      ],
+      "author": "Sleep-C,SingSyong",
+      "name": "全知读者视角",
+      "topic_img": "quanzhiduzheshijiao-sleepcsingsyong.jpg",
+      "region_name": "韩国",
+      "region": "kr"
+    },
+    {
+      "comic_id": "huyaoxiaohongniang-xiaoxin",
+      "type_names": [
+        "古风"
+      ],
+      "author": "小新",
+      "name": "狐妖小红娘",
+      "topic_img": "huyaoxiaohongniang-xiaoxin.jpg",
+      "region_name": "国漫",
+      "region": "cn"
+    },
+    {
+      "comic_id": "woshidashenxian-shengshiqiaman",
+      "type_names": [
+        "穿越",
+        "古风"
+      ],
+      "author": "盛世卡漫",
+      "name": "我是大神仙",
+      "topic_img": "woshidashenxian-shengshiqiaman.jpg",
+      "region_name": "国漫",
+      "region": "cn"
+    },
+    {
+      "comic_id": "congdashukaishidejinhua-feihongzhiyeyuanzhuheiniaoshe",
+      "type_names": [
+        "恋爱",
+        "异能",
+        "格斗"
+      ],
+      "author": "绯红之夜（原著）+黑鸟社",
+      "name": "从大树开始的进化",
+      "topic_img": "congdashukaishidejinhua-feihongzhiyeyuanzhuheiniaoshe.jpg",
+      "region_name": "国漫",
+      "region": "cn"
+    },
+    {
+      "comic_id": "caifuziyouhoutamenxianshangliaozhongcheng-feiliqishiyuanzhuchunriwenhua",
+      "type_names": [
+        "剧情",
+        "都市"
+      ],
+      "author": "肥狸骑士（原著）+春日文化",
+      "name": "财富自由后，她们献上了忠诚",
+      "topic_img": "caifuziyouhoutamenxianshangliaozhongcheng-feiliqishiyuanzhuchunriwenhua.jpg",
+      "region_name": "国漫",
+      "region": "cn"
+    },
+    {
+      "comic_id": "douluodaluiijueshitangmen-shenmanjun",
+      "type_names": [
+        "玄幻"
+      ],
+      "author": "神漫君",
+      "name": "斗罗大陆 II 绝世唐门",
+      "topic_img": "douluodaluiijueshitangmen-shenmanjun.jpg",
+      "region_name": "国漫",
+      "region": "cn"
+    },
+    {
+      "comic_id": "huashenyemanrenzaiyijieshengcun-hantaesujungyoonkangmidnightstudio",
+      "type_names": [
+        "热血",
+        "奇幻"
+      ],
+      "author": "Han tae-su/Jung Yoon-kang,MIDNIGHT STUDIO",
+      "name": "化身野蛮人在异界生存",
+      "topic_img": "huashenyemanrenzaiyijieshengcun-hantaesujungyoonkangmidnightstudio.jpg",
+      "region_name": "韩国",
+      "region": "kr"
+    },
+    {
+      "comic_id": "zhuangbeiwozuiqiang-teamargomonohumbugredicestudiosaenalredicestudio",
+      "type_names": [
+        "冒险"
+      ],
+      "author": "Team Argo,Monohumbug(Redice Studio),Saenal,Redice Studio",
+      "name": "装备我最强",
+      "topic_img": "zhuangbeiwozuiqiang-teamargomonohumbugredicestudiosaenalredicestudio.jpg",
+      "region_name": "国漫",
+      "region": "cn"
+    },
+    {
+      "comic_id": "yinluandelinjiagege-yanggwaram",
+      "type_names": [
+        "恋爱"
+      ],
+      "author": "양과람",
+      "name": "淫乱的邻家哥哥",
+      "topic_img": "yinluandelinjiagege-yanggwaram.jpg",
+      "region_name": "日本",
+      "region": "jp"
+    },
+    {
+      "comic_id": "wuliandianfeng-pikapi",
+      "type_names": [
+        "热血",
+        "冒险"
+      ],
+      "author": "噼咔噼",
+      "name": "武炼巅峰",
+      "topic_img": "wuliandianfeng-pikapi.jpg",
+      "region_name": "国漫",
+      "region": "cn"
+    },
+    {
+      "comic_id": "faqingdetuzi-kfr",
+      "type_names": [
+        "其它"
+      ],
+      "author": "KFR",
+      "name": "发情的兔子",
+      "topic_img": "faqingdetuzi-kfr.jpg",
+      "region_name": "日本",
+      "region": "jp"
+    },
+    {
+      "comic_id": "riyuetongcuo-dinianmiao",
+      "type_names": [
+        "冒险",
+        "玄幻"
+      ],
+      "author": "第年秒",
+      "name": "日月同错",
+      "topic_img": "riyuetongcuo-dinianmiao.jpg",
+      "region_name": "国漫",
+      "region": "cn"
+    },
+    {
+      "comic_id": "niqueaizhaoyigeta-shuiqianchengyuanzhukoowaneirongtuandui",
+      "type_names": [
+        "剧情",
+        "都市"
+      ],
+      "author": "水千丞（原著）+Koowa内容团队",
+      "name": "你却爱着一个他",
+      "topic_img": "niqueaizhaoyigeta-shuiqianchengyuanzhukoowaneirongtuandui.jpg",
+      "region_name": "国漫",
+      "region": "cn"
+    },
+    {
+      "comic_id": "wopeiyangdesjimen-serigeunseobiwan",
+      "type_names": [
+        "热血",
+        "奇幻"
+      ],
+      "author": "seri/geunseo,biwan",
+      "name": "我培养的S级们",
+      "topic_img": "wopeiyangdesjimen-serigeunseobiwan.jpg",
+      "region_name": "韩国",
+      "region": "kr"
+    },
+    {
+      "comic_id": "naodongxueshenghui-mutikiro",
+      "type_names": [
+        "恋爱",
+        "搞笑"
+      ],
+      "author": "むちきろ",
+      "name": "脑洞学生会",
+      "topic_img": "naodongxueshenghui-mutikiro.jpg",
+      "region_name": "日本",
+      "region": "jp"
+    },
+    {
+      "comic_id": "conglingkaishiwuxianjinhua-taoleqianci",
+      "type_names": [
+        "其它"
+      ],
+      "author": "桃乐茜ci",
+      "name": "从零开始无限进化",
+      "topic_img": "conglingkaishiwuxianjinhua-taoleqianci.jpg",
+      "region_name": "国漫",
+      "region": "cn"
+    },
+    {
+      "comic_id": "lanqianshaduzhengkunaozhao-hiro",
+      "type_names": [
+        "纯爱"
+      ],
+      "author": "HIRO",
+      "name": "岚千砂都正苦恼着",
+      "topic_img": "lanqianshaduzhengkunaozhao-hiro.jpg",
+      "region_name": "日本",
+      "region": "jp"
+    },
+    {
+      "comic_id": "jueshiwushen-yunduanmanhua",
+      "type_names": [
+        "穿越",
+        "热血",
+        "冒险"
+      ],
+      "author": "云端漫画",
+      "name": "绝世武神",
+      "topic_img": "jueshiwushen-yunduanmanhua.jpg",
+      "region_name": "国漫",
+      "region": "cn"
+    },
+    {
+      "comic_id": "woduzimanjixinshou-maslowwanzswingbat",
+      "type_names": [
+        "热血",
+        "奇幻"
+      ],
+      "author": "Maslow/WAN.Z,SWING BAT",
+      "name": "我独自满级新手",
+      "topic_img": "woduzimanjixinshou-maslowwanzswingbat.jpg",
+      "region_name": "韩国",
+      "region": "kr"
+    },
+    {
+      "comic_id": "modujingbingdenuli-zhucunyangping",
+      "type_names": [
+        "冒险",
+        "奇幻"
+      ],
+      "author": "竹村洋平",
+      "name": "魔都精兵的奴隶",
+      "topic_img": "modujingbingdenuli-zhucunyangping.jpg",
+      "region_name": "日本",
+      "region": "jp"
+    },
+    {
+      "comic_id": "xiezhenleyuan-guiairi",
+      "type_names": [
+        "恋爱"
+      ],
+      "author": "桂あいり",
+      "name": "写真乐园！",
+      "topic_img": "xiezhenleyuan-guiairi.jpg",
+      "region_name": "日本",
+      "region": "jp"
+    },
+    {
+      "comic_id": "budangtiangouhouwochengliaoyimoshenhao-dazui",
+      "type_names": [
+        "其它"
+      ],
+      "author": "DAZUI",
+      "name": "不当舔狗后，我成了亿万神豪",
+      "topic_img": "budangtiangouhouwochengliaoyimoshenhao-dazui.jpg",
+      "region_name": "国漫",
+      "region": "cn"
+    },
+    {
+      "comic_id": "qingxubing-zhazhushidede",
+      "type_names": [
+        "格斗",
+        "悬疑"
+      ],
+      "author": "诈术师德德",
+      "name": "情绪病",
+      "topic_img": "qingxubing-zhazhushidede.jpg",
+      "region_name": "国漫",
+      "region": "cn"
+    },
+    {
+      "comic_id": "xingjiandashi-hongdayiq10juno",
+      "type_names": [
+        "少年",
+        "奇幻"
+      ],
+      "author": "洪大义/Q10,Juno",
+      "name": "星剑大师",
+      "topic_img": "xingjiandashi-hongdayiq10juno.jpg",
+      "region_name": "韩国",
+      "region": "kr"
+    },
+    {
+      "comic_id": "weiliaonushenmenweiliaodafuni-yiming",
+      "type_names": [
+        "恋爱"
+      ],
+      "author": "佚名",
+      "name": "为了女神们：为了达芙妮",
+      "topic_img": "weiliaonushenmenweiliaodafuni-yiming.jpg",
+      "region_name": "日本",
+      "region": "jp"
+    },
+    {
+      "comic_id": "penzituitezuopinji-penzi",
+      "type_names": [
+        "后宫"
+      ],
+      "author": "pen姉",
+      "name": "pen姉推特作品集",
+      "topic_img": "penzituitezuopinji-penzi.jpg",
+      "region_name": "日本",
+      "region": "jp"
+    },
+    {
+      "comic_id": "douluodaludisanbulongwangchuanshuo-shenmanjun",
+      "type_names": [
+        "玄幻"
+      ],
+      "author": "神漫君",
+      "name": "斗罗大陆 第三部 龙王传说",
+      "topic_img": "douluodaludisanbulongwangchuanshuo-shenmanjun.jpg",
+      "region_name": "国漫",
+      "region": "cn"
+    },
+    {
+      "comic_id": "tianmoyucheng-chohyunggeunkwanghwi",
+      "type_names": [
+        "古风",
+        "热血"
+      ],
+      "author": "Cho Hyung Geun,Kwang Hwi",
+      "name": "天魔育成",
+      "topic_img": "tianmoyucheng-chohyunggeunkwanghwi.jpg",
+      "region_name": "韩国",
+      "region": "kr"
+    },
+    {
+      "comic_id": "morilaixi-tianshanxutianshanxu",
+      "type_names": [
+        "校园",
+        "奇幻"
+      ],
+      "author": "田善旭,田善旭",
+      "name": "末日来袭",
+      "topic_img": "morilaixi-tianshanxutianshanxu.jpg",
+      "region_name": "韩国",
+      "region": "kr"
+    },
+    {
+      "comic_id": "jueduihuigui-yhjangjppozhenhuan",
+      "type_names": [
+        "古风",
+        "少年"
+      ],
+      "author": "Y.H.JANG/JP,朴珍焕",
+      "name": "绝对回归",
+      "topic_img": "jueduihuigui-yhjangjppozhenhuan.jpg",
+      "region_name": "韩国",
+      "region": "kr"
+    },
+    {
+      "comic_id": "beiganjiazuiqiangdelameituozhaozoudefangxuehoushenghuodedaotamendexiaiwoyebianchengzuiqiang-qingliuxiaofu",
+      "type_names": [
+        "恋爱",
+        "搞笑",
+        "后宫"
+      ],
+      "author": "青柳孝夫",
+      "name": "被干架最强的辣妹拖着走的放学后生活，得到她们的喜爱，我也变成最强？",
+      "topic_img": "beiganjiazuiqiangdelameituozhaozoudefangxuehoushenghuodedaotamendexiaiwoyebianchengzuiqiang-qingliuxiaofu.jpg",
+      "region_name": "日本",
+      "region": "jp"
+    }
+  ]
+}

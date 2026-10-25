@@ -194,6 +194,10 @@ interface ImageLoadConfig {
   /** Number of equal-height vertical strips to reverse; zero means unchanged. */
   segments?: number;
 }
+/** Copies the source rectangle (sx, sy, sw, sh) unscaled to (dx, dy) on the output canvas. */
+interface ImageRegion { sx: number; sy: number; sw: number; sh: number; dx: number; dy: number }
+/** Output canvas defaults to the source size; uncovered pixels are transparent. */
+interface ImageRegionLayout { width?: number; height?: number; regions: ImageRegion[] }
 type SourceActionLocation = 'plugin' | 'reading' | 'other' | 'lab' | 'advanced' | 'lines';
 /** Fixed UI slots. Buttons reuse the app's existing layout and callbacks.
  * checkIn and resetDeviceInfo check presentation.menus['plugin.buttons.<id>'];
@@ -237,8 +241,9 @@ interface SourcePresentation {
   enrichMissingTags?: boolean;
   /** Compatibility aliases for previously saved favorite sort values. */
   favoriteOrderAliases?: Record<string, string>;
-  /** Migrate old local preferences once; local sorting is now owned by the host. */
-  localFavoriteOrders?: Record<string, 'savedNewest' | 'savedOldest' | 'updatedNewest'>;
+  /** Migrate old local preferences once; local sorting is now owned by the host.
+   * 'updatedNewest' is retired and treated as 'readNewest'; kept only for published plugins. */
+  localFavoriteOrders?: Record<string, 'savedNewest' | 'savedOldest' | 'readNewest' | 'updatedNewest'>;
   /** Display labels for cloud favorite orders; unknown unlabeled orders show their code. */
   favoriteOrderLabels?: Record<string, SourceText>;
   /** Legacy alias for menus['favorites.cloud.sort']; an explicitly declared
@@ -301,6 +306,8 @@ interface HazukiSourceDefinition {
     }>;
     onImageLoad?: (url: string, comicId: string, chapterId: string) => Awaitable<ImageLoadConfig>;
     transformImageBytes?: (bytes: Uint8Array, url: string, comicId: string, chapterId: string) => Awaitable<{bytes: Uint8Array; extension?: string}>;
+    /** Runs after transformImageBytes with the decoded size; a non-empty layout takes precedence over segments. GIFs are skipped. */
+    mapImageRegions?: (width: number, height: number, url: string, comicId: string, chapterId: string) => Awaitable<ImageRegionLayout | null | undefined>;
     /** Provides the desktop like button and enables mobile headerStats like actions. */
     likeComic?: (id: string, isLike: boolean) => Awaitable<void>;
     /** Host passes the selected commentOrders code as the fifth argument, also for replies.
@@ -456,7 +463,10 @@ declare const Hazuki: {
   settings: {get(key: string): unknown; set(key: string, value: unknown): Promise<void>};
   resources: {readText(path: string): Promise<string>};
   cookies: {get(url: string): Promise<SourceCookie[]>; set(url: string, cookies: SourceCookie[]): Promise<void>; delete(url: string): Promise<void>};
-  images: {reverseVerticalTiles(segments: number): ImageLoadConfig};
+  images: {
+    reverseVerticalTiles(segments: number): ImageLoadConfig;
+    regions(regions: ImageRegion[], size?: {width?: number; height?: number}): ImageRegionLayout;
+  };
   convert: Record<string, (...args: any[]) => any>;
   log(message: unknown, level?: string): void;
   delay(ms: number): Promise<void>;

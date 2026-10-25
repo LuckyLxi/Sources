@@ -1,0 +1,409 @@
+{
+  "next": "/api/bzmhq/amp_comic_list?type=lianai&region=jp&state=all&filter=*&page=2&limit=36&language=cn",
+  "items": [
+    {
+      "comic_id": "yinjiaoweiyuanchangdeyinle-tehakusen",
+      "type_names": [
+        "恋爱"
+      ],
+      "author": "テハクセン",
+      "name": "阴角委员长的淫乐",
+      "topic_img": "yinjiaoweiyuanchangdeyinle-tehakusen.jpg",
+      "region_name": "日本",
+      "region": "jp"
+    },
+    {
+      "comic_id": "weiliaonushenmenweiliaopuxuke-kkam",
+      "type_names": [
+        "恋爱"
+      ],
+      "author": "KKAM",
+      "name": "为了女神们：为了普绪克",
+      "topic_img": "weiliaonushenmenweiliaopuxuke-kkam.jpg",
+      "region_name": "日本",
+      "region": "jp"
+    },
+    {
+      "comic_id": "zhangfumingmingshishengqishi-jagae",
+      "type_names": [
+        "恋爱"
+      ],
+      "author": "JAGAE",
+      "name": "丈夫明明是圣骑士",
+      "topic_img": "zhangfumingmingshishengqishi-jagae.jpg",
+      "region_name": "日本",
+      "region": "jp"
+    },
+    {
+      "comic_id": "weikongjuzuoaidenishuizhongbochong-lantianmaroyaka",
+      "type_names": [
+        "恋爱"
+      ],
+      "author": "蓝田まろやか",
+      "name": "为恐惧做爱的你睡中播种",
+      "topic_img": "weikongjuzuoaidenishuizhongbochong-lantianmaroyaka.jpg",
+      "region_name": "日本",
+      "region": "jp"
+    },
+    {
+      "comic_id": "zhixiangduzhannidezhimutongxue-shichuanhui",
+      "type_names": [
+        "恋爱"
+      ],
+      "author": "市川彗",
+      "name": "只想独占你的只木同学",
+      "topic_img": "zhixiangduzhannidezhimutongxue-shichuanhui.jpg",
+      "region_name": "日本",
+      "region": "jp"
+    },
+    {
+      "comic_id": "yinluandelinjiagege-yanggwaram",
+      "type_names": [
+        "恋爱"
+      ],
+      "author": "양과람",
+      "name": "淫乱的邻家哥哥",
+      "topic_img": "yinluandelinjiagege-yanggwaram.jpg",
+      "region_name": "日本",
+      "region": "jp"
+    },
+    {
+      "comic_id": "naodongxueshenghui-mutikiro",
+      "type_names": [
+        "恋爱",
+        "搞笑"
+      ],
+      "author": "むちきろ",
+      "name": "脑洞学生会",
+      "topic_img": "naodongxueshenghui-mutikiro.jpg",
+      "region_name": "日本",
+      "region": "jp"
+    },
+    {
+      "comic_id": "xiezhenleyuan-guiairi",
+      "type_names": [
+        "恋爱"
+      ],
+      "author": "桂あいり",
+      "name": "写真乐园！",
+      "topic_img": "xiezhenleyuan-guiairi.jpg",
+      "region_name": "日本",
+      "region": "jp"
+    },
+    {
+      "comic_id": "weiliaonushenmenweiliaodafuni-yiming",
+      "type_names": [
+        "恋爱"
+      ],
+      "author": "佚名",
+      "name": "为了女神们：为了达芙妮",
+      "topic_img": "weiliaonushenmenweiliaodafuni-yiming.jpg",
+      "region_name": "日本",
+      "region": "jp"
+    },
+    {
+      "comic_id": "beiganjiazuiqiangdelameituozhaozoudefangxuehoushenghuodedaotamendexiaiwoyebianchengzuiqiang-qingliuxiaofu",
+      "type_names": [
+        "恋爱",
+        "搞笑",
+        "后宫"
+      ],
+      "author": "青柳孝夫",
+      "name": "被干架最强的辣妹拖着走的放学后生活，得到她们的喜爱，我也变成最强？",
+      "topic_img": "beiganjiazuiqiangdelameituozhaozoudefangxuehoushenghuodedaotamendexiaiwoyebianchengzuiqiang-qingliuxiaofu.jpg",
+      "region_name": "日本",
+      "region": "jp"
+    },
+    {
+      "comic_id": "shangtianyouzhidongmubixu-zuogu",
+      "type_names": [
+        "恋爱"
+      ],
+      "author": "佐古",
+      "name": "上天有旨，冬木必须",
+      "topic_img": "shangtianyouzhidongmubixu-zuogu.jpg",
+      "region_name": "日本",
+      "region": "jp"
+    },
+    {
+      "comic_id": "grandbluebilanzhihai-jingshangjianer",
+      "type_names": [
+        "恋爱"
+      ],
+      "author": "井上坚二",
+      "name": "GRANDBLUE碧蓝之海",
+      "topic_img": "grandbluebilanzhihai-jingshangjianer.jpg",
+      "region_name": "日本",
+      "region": "jp"
+    },
+    {
+      "comic_id": "xiabanhoubeimeimaodeweihunshangsiqingqiu-tonnosuke",
+      "type_names": [
+        "恋爱"
+      ],
+      "author": "とんのすけ",
+      "name": "下班后，被美貌的未婚上司请求…",
+      "topic_img": "xiabanhoubeimeimaodeweihunshangsiqingqiu-tonnosuke.jpg",
+      "region_name": "日本",
+      "region": "jp"
+    },
+    {
+      "comic_id": "hecaifajiadexiaoerzixxplay-yiming",
+      "type_names": [
+        "恋爱"
+      ],
+      "author": "佚名",
+      "name": "和财阀家的小儿子XXplay",
+      "topic_img": "hecaifajiadexiaoerzixxplay-yiming.jpg",
+      "region_name": "日本",
+      "region": "jp"
+    },
+    {
+      "comic_id": "yeshoupaideaibawokenshidaijin-pokerou",
+      "type_names": [
+        "恋爱",
+        "纯爱",
+        "奇幻"
+      ],
+      "author": "ぽけろう",
+      "name": "野兽派的爱把我啃食殆尽",
+      "topic_img": "yeshoupaideaibawokenshidaijin-pokerou.jpg",
+      "region_name": "日本",
+      "region": "jp"
+    },
+    {
+      "comic_id": "qingmeizhumaqingjie-eunhi",
+      "type_names": [
+        "恋爱"
+      ],
+      "author": "EUNHI",
+      "name": "青梅竹马情结",
+      "topic_img": "qingmeizhumaqingjie-eunhi.jpg",
+      "region_name": "日本",
+      "region": "jp"
+    },
+    {
+      "comic_id": "jinyuzhiguo-haga",
+      "type_names": [
+        "恋爱"
+      ],
+      "author": "하가",
+      "name": "禁慾之国",
+      "topic_img": "jinyuzhiguo-haga.jpg",
+      "region_name": "日本",
+      "region": "jp"
+    },
+    {
+      "comic_id": "shuzuiyicankuzhiming-anyaghanboyeonsorag",
+      "type_names": [
+        "恋爱"
+      ],
+      "author": "아냑 Hanboyeon 소락",
+      "name": "赎罪，以残酷之名",
+      "topic_img": "shuzuiyicankuzhiming-anyaghanboyeonsorag.jpg",
+      "region_name": "日本",
+      "region": "jp"
+    },
+    {
+      "comic_id": "heguizaiyiqidenanren-",
+      "type_names": [
+        "恋爱"
+      ],
+      "author": "???",
+      "name": "和鬼在一起的男人",
+      "topic_img": "heguizaiyiqidenanren-.jpg",
+      "region_name": "日本",
+      "region": "jp"
+    },
+    {
+      "comic_id": "guoyuandeqingkuang-jjanggeol",
+      "type_names": [
+        "恋爱"
+      ],
+      "author": "짱걸",
+      "name": "果园的情况",
+      "topic_img": "guoyuandeqingkuang-jjanggeol.jpg",
+      "region_name": "日本",
+      "region": "jp"
+    },
+    {
+      "comic_id": "fangxuehoudebiaoyan-zhiruiyou",
+      "type_names": [
+        "恋爱",
+        "搞笑"
+      ],
+      "author": "志瑞祐",
+      "name": "放学后的婊演",
+      "topic_img": "fangxuehoudebiaoyan-zhiruiyou.jpg",
+      "region_name": "日本",
+      "region": "jp"
+    },
+    {
+      "comic_id": "qingqingwowoduwochengfo-awaipotupo",
+      "type_names": [
+        "恋爱"
+      ],
+      "author": "あわいぽっぽ",
+      "name": "卿卿我我渡我成佛",
+      "topic_img": "qingqingwowoduwochengfo-awaipotupo.jpg",
+      "region_name": "日本",
+      "region": "jp"
+    },
+    {
+      "comic_id": "zhidaowuxiushijianjieshuweizhi-betock",
+      "type_names": [
+        "恋爱",
+        "纯爱"
+      ],
+      "author": "betock",
+      "name": "直到午休时间结束为止",
+      "topic_img": "zhidaowuxiushijianjieshuweizhi-betock.jpg",
+      "region_name": "日本",
+      "region": "jp"
+    },
+    {
+      "comic_id": "mangshouwujinye-hongyura",
+      "type_names": [
+        "恋爱"
+      ],
+      "author": "홍유라",
+      "name": "盲兽无尽夜",
+      "topic_img": "mangshouwujinye-hongyura.jpg",
+      "region_name": "日本",
+      "region": "jp"
+    },
+    {
+      "comic_id": "meiyin-musawo",
+      "type_names": [
+        "恋爱"
+      ],
+      "author": "ムサヲ",
+      "name": "魅瘾",
+      "topic_img": "meiyin-musawo.jpg",
+      "region_name": "日本",
+      "region": "jp"
+    },
+    {
+      "comic_id": "gebidexiaogou-yiming",
+      "type_names": [
+        "恋爱"
+      ],
+      "author": "佚名",
+      "name": "隔壁的小狗",
+      "topic_img": "gebidexiaogou-yiming.jpg",
+      "region_name": "日本",
+      "region": "jp"
+    },
+    {
+      "comic_id": "kuweizhihuashangdeyanlei-gae",
+      "type_names": [
+        "恋爱"
+      ],
+      "author": "GAE",
+      "name": "枯萎之花上的眼泪",
+      "topic_img": "kuweizhihuashangdeyanlei-gae.jpg",
+      "region_name": "日本",
+      "region": "jp"
+    },
+    {
+      "comic_id": "bojuejiademimishinu-baegjua",
+      "type_names": [
+        "恋爱"
+      ],
+      "author": "백주아",
+      "name": "伯爵家的秘密侍女",
+      "topic_img": "bojuejiademimishinu-baegjua.jpg",
+      "region_name": "日本",
+      "region": "jp"
+    },
+    {
+      "comic_id": "wodezhangfubeizhujiaofushenliao-kurobinkan",
+      "type_names": [
+        "恋爱"
+      ],
+      "author": " 쿠로 빈칸",
+      "name": "我的丈夫被主角附身了",
+      "topic_img": "wodezhangfubeizhujiaofushenliao-kurobinkan.jpg",
+      "region_name": "日本",
+      "region": "jp"
+    },
+    {
+      "comic_id": "chuanyuechengguaitanbandeenu-yiming",
+      "type_names": [
+        "恋爱"
+      ],
+      "author": "佚名",
+      "name": "穿越成怪谈般的恶女",
+      "topic_img": "chuanyuechengguaitanbandeenu-yiming.jpg",
+      "region_name": "日本",
+      "region": "jp"
+    },
+    {
+      "comic_id": "woxiangyongcuimianyingyongguoshangmengxiangzhongdehougongshenghuo-yingyoru",
+      "type_names": [
+        "恋爱"
+      ],
+      "author": "樱ヨル",
+      "name": "我想用催眠应用过上梦想中的后宫生活",
+      "topic_img": "woxiangyongcuimianyingyongguoshangmengxiangzhongdehougongshenghuo-yingyoru.jpg",
+      "region_name": "日本",
+      "region": "jp"
+    },
+    {
+      "comic_id": "shilindetieze-seyoonnsunah",
+      "type_names": [
+        "恋爱"
+      ],
+      "author": "Seyoonn Sunah",
+      "name": "世琳的铁则",
+      "topic_img": "shilindetieze-seyoonnsunah.jpg",
+      "region_name": "日本",
+      "region": "jp"
+    },
+    {
+      "comic_id": "shaonumanhuazhongwufashixiandelianqing-howako",
+      "type_names": [
+        "恋爱"
+      ],
+      "author": "ほわこ",
+      "name": "少女漫画中无法实现的恋情",
+      "topic_img": "shaonumanhuazhongwufashixiandelianqing-howako.jpg",
+      "region_name": "日本",
+      "region": "jp"
+    },
+    {
+      "comic_id": "xiangtailangxianzaiduiwoyijingmeiyouxiangfaliaoma-qinghainiina",
+      "type_names": [
+        "恋爱"
+      ],
+      "author": "晴海にいな",
+      "name": "祥太朗现在，对我已经没有想法了吗？",
+      "topic_img": "xiangtailangxianzaiduiwoyijingmeiyouxiangfaliaoma-qinghainiina.jpg",
+      "region_name": "日本",
+      "region": "jp"
+    },
+    {
+      "comic_id": "nihuiduiwofuzebapipiqingmeizhumadebuzhengchangaiqing-xihaiminato",
+      "type_names": [
+        "恋爱"
+      ],
+      "author": "西海ミナト",
+      "name": "你会对我负责吧？～坏坏青梅竹马的不正常爱情～",
+      "topic_img": "nihuiduiwofuzebapipiqingmeizhumadebuzhengchangaiqing-xihaiminato.jpg",
+      "region_name": "日本",
+      "region": "jp"
+    },
+    {
+      "comic_id": "wufayizhizhiqingshifouhuanzuoai-konghuamia",
+      "type_names": [
+        "恋爱",
+        "纯爱"
+      ],
+      "author": "空华みあ",
+      "name": "无法抑制之情是否唤作爱",
+      "topic_img": "wufayizhizhiqingshifouhuanzuoai-konghuamia.jpg",
+      "region_name": "日本",
+      "region": "jp"
+    }
+  ]
+}

@@ -1,0 +1,33 @@
+<form class="pure-form pure-form-stacked"><fieldset><legend></legend>
+<div style="width: 300px; margin: 0 auto"><label for="email">邮箱</label>
+<input id="mail" type="email" placeholder="请输入邮箱地址..." value required="required" class="pure-input-1">
+<label for="password">密码</label>
+<input id="password" type="password" placeholder="请输入账号密码..." minlength="6" maxlength="32" value required="required" class="pure-input-1">
+<span id="ERR_SIGNUP" class="pure-form-message error-tips" style="color: red; margin-bottom: 12px; display: none;">
+            注册失败
+          </span>
+<span id="ERR_MAIL" class="pure-form-message error-tips" style="color: red; margin-bottom: 12px; display: none;">
+            请输入正确的邮箱
+          </span>
+<span id="ERR_PASSWORD" class="pure-form-message error-tips" style="color: red; margin-bottom: 12px; display: none;">
+            密码错误
+          </span>
+<span id="ERR_SIGNIN_NAME_OR_PASSWORD" class="pure-form-message error-tips" style="color: red; margin-bottom: 12px; display: none;">
+            邮箱或密码错误
+          </span>
+<span id="ERR_SIGNIN_VERIFY_CODE" class="pure-form-message error-tips" style="color: red; margin-bottom: 12px; display: none;">
+            验证码错误
+          </span>
+<span id="ERR_SIGNIN" class="pure-form-message error-tips" style="color: red; margin-bottom: 12px; display: none;">
+            登录失败
+          </span>
+<span id="ERR_UNKNOWN" class="pure-form-message error-tips" style="color: red; margin-bottom: 12px; display: none;">
+            未知错误
+          </span>
+<span id="success" class="pure-form-message" style="color: red; margin-bottom: 12px; display: none;">
+            密码修改成功
+          </span>
+<div id="submit" type="submit" onclick="submit()" class="pure-button pure-button-primary pure-input-1">
+            登录
+          </div>
+<p>还没有账号？先<a href="/user/signup" class="link">创建账号</a>吧！</p></div></fieldset></form>

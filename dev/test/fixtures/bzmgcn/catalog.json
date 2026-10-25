@@ -1,0 +1,435 @@
+{
+  "next": "/api/bzmhq/amp_comic_list?type=all&region=all&state=all&filter=*&page=2&limit=36&language=cn",
+  "items": [
+    {
+      "comic_id": "dafengdagengren-chuyingshe",
+      "type_names": [
+        "穿越",
+        "古风"
+      ],
+      "author": "初樱社",
+      "name": "大奉打更人",
+      "topic_img": "dafengdagengren-chuyingshe.jpg",
+      "region_name": "国漫",
+      "region": "cn"
+    },
+    {
+      "comic_id": "silingfashiwojishitianzai-mantudezhuyuanzhuheiniaoshe",
+      "type_names": [
+        "其它"
+      ],
+      "author": "慢途的猪（原著）+黑鸟社",
+      "name": "死灵法师！我即是天灾",
+      "topic_img": "silingfashiwojishitianzai-mantudezhuyuanzhuheiniaoshe.jpg",
+      "region_name": "国漫",
+      "region": "cn"
+    },
+    {
+      "comic_id": "shaosong-yuewenmanhua",
+      "type_names": [
+        "穿越",
+        "古风"
+      ],
+      "author": "阅文漫画",
+      "name": "绍宋",
+      "topic_img": "shaosong-yuewenmanhua.jpg",
+      "region_name": "国漫",
+      "region": "cn"
+    },
+    {
+      "comic_id": "wodetudidushidafanpai-yuetian",
+      "type_names": [
+        "古风",
+        "xitong"
+      ],
+      "author": "【月天】",
+      "name": "我的徒弟都是大反派",
+      "topic_img": "wodetudidushidafanpai-yuetian.jpg",
+      "region_name": "国漫",
+      "region": "cn"
+    },
+    {
+      "comic_id": "yaoshenji-taxuedongman",
+      "type_names": [
+        "shenmo",
+        "热血",
+        "冒险"
+      ],
+      "author": "踏雪动漫",
+      "name": "妖神记",
+      "topic_img": "yaoshenji-taxuedongman.jpg",
+      "region_name": "国漫",
+      "region": "cn"
+    },
+    {
+      "comic_id": "yinjiaoweiyuanchangdeyinle-tehakusen",
+      "type_names": [
+        "恋爱"
+      ],
+      "author": "テハクセン",
+      "name": "阴角委员长的淫乐",
+      "topic_img": "yinjiaoweiyuanchangdeyinle-tehakusen.jpg",
+      "region_name": "日本",
+      "region": "jp"
+    },
+    {
+      "comic_id": "wotianmingdafanpai-tianmingfanpaiyuanzhuhuizhudongman",
+      "type_names": [
+        "穿越",
+        "古风",
+        "热血",
+        "搞笑",
+        "玄幻"
+      ],
+      "author": "天命反派（原著）+绘术动漫",
+      "name": "我！天命大反派（隔周双更）",
+      "topic_img": "wotianmingdafanpai-tianmingfanpaiyuanzhuhuizhudongman.jpg",
+      "region_name": "国漫",
+      "region": "cn"
+    },
+    {
+      "comic_id": "xingjiahunjiangchuan-lexiangdongman",
+      "type_names": [
+        "xitong",
+        "zhongsheng"
+      ],
+      "author": "乐想动漫",
+      "name": "星甲魂将传",
+      "topic_img": "xingjiahunjiangchuan-lexiangdongman.jpg",
+      "region_name": "国漫",
+      "region": "cn"
+    },
+    {
+      "comic_id": "jiemeiyiqizhibodegushi-aueitian",
+      "type_names": [
+        "纯爱"
+      ],
+      "author": "アウェイ田",
+      "name": "姐妹一起直播的故事",
+      "topic_img": "jiemeiyiqizhibodegushi-aueitian.jpg",
+      "region_name": "日本",
+      "region": "jp"
+    },
+    {
+      "comic_id": "dingjiqiyunqiaoqiaoxiulianqiannian-yuewenmanhua",
+      "type_names": [
+        "其它"
+      ],
+      "author": "阅文漫画",
+      "name": "顶级气运，悄悄修炼千年",
+      "topic_img": "dingjiqiyunqiaoqiaoxiulianqiannian-yuewenmanhua.jpg",
+      "region_name": "国漫",
+      "region": "cn"
+    },
+    {
+      "comic_id": "dawangraoming-yuedongwenhua",
+      "type_names": [
+        "热血",
+        "玄幻"
+      ],
+      "author": "閱動文化",
+      "name": "大王饶命",
+      "topic_img": "dawangraoming-yuedongwenhua.jpg",
+      "region_name": "国漫",
+      "region": "cn"
+    },
+    {
+      "comic_id": "mohuangdaguanjia-yexiaoyuanzhu",
+      "type_names": [
+        "古风",
+        "热血",
+        "奇幻",
+        "少年",
+        "玄幻",
+        "nixi"
+      ],
+      "author": "夜枭（原著）",
+      "name": "魔皇大管家",
+      "topic_img": "mohuangdaguanjia-yexiaoyuanzhu.jpg",
+      "region_name": "国漫",
+      "region": "cn"
+    },
+    {
+      "comic_id": "zheyishiwoyaodangzhizun-taiyishengshuiyuanzhua4manye",
+      "type_names": [
+        "恋爱",
+        "热血",
+        "玄幻"
+      ],
+      "author": "太一生水（原著）+A4漫业",
+      "name": "这一世我要当至尊",
+      "topic_img": "zheyishiwoyaodangzhizun-taiyishengshuiyuanzhua4manye.jpg",
+      "region_name": "国漫",
+      "region": "cn"
+    },
+    {
+      "comic_id": "daxiangwuxing-fanqidongmansanfanxiongxzhaoxiayu",
+      "type_names": [
+        "热血",
+        "都市"
+      ],
+      "author": "番奇动漫/三番熊X赵夏煜",
+      "name": "大象无形",
+      "topic_img": "daxiangwuxing-fanqidongmansanfanxiongxzhaoxiayu.jpg",
+      "region_name": "国漫",
+      "region": "cn"
+    },
+    {
+      "comic_id": "shishangzuiqiangzhuixu-yuewenmanhua",
+      "type_names": [
+        "其它"
+      ],
+      "author": "阅文漫画",
+      "name": "史上最强赘婿",
+      "topic_img": "shishangzuiqiangzhuixu-yuewenmanhua.jpg",
+      "region_name": "国漫",
+      "region": "cn"
+    },
+    {
+      "comic_id": "cuoliao-qiaoyaoyuanzhulululujiang",
+      "type_names": [
+        "都市",
+        "恋爱",
+        "总裁"
+      ],
+      "author": "翘摇（原著）+绿绿绿酱",
+      "name": "错撩",
+      "topic_img": "cuoliao-qiaoyaoyuanzhulululujiang.jpg",
+      "region_name": "国漫",
+      "region": "cn"
+    },
+    {
+      "comic_id": "jianzunguilai-bigalico",
+      "type_names": [
+        "古风",
+        "热血"
+      ],
+      "author": "BIGA,LICO",
+      "name": "剑尊归来",
+      "topic_img": "jianzunguilai-bigalico.jpg",
+      "region_name": "韩国",
+      "region": "kr"
+    },
+    {
+      "comic_id": "sesejiejietuidaowo-xuheduzhi",
+      "type_names": [
+        "其它"
+      ],
+      "author": "须河笃志",
+      "name": "涩涩姐姐推倒我",
+      "topic_img": "sesejiejietuidaowo-xuheduzhi.jpg",
+      "region_name": "日本",
+      "region": "jp"
+    },
+    {
+      "comic_id": "daoguiyixian-yuewenmanhua",
+      "type_names": [
+        "古风"
+      ],
+      "author": "阅文漫画",
+      "name": "道诡异仙",
+      "topic_img": "daoguiyixian-yuewenmanhua.jpg",
+      "region_name": "国漫",
+      "region": "cn"
+    },
+    {
+      "comic_id": "diqiujintou-qiduyu",
+      "type_names": [
+        "冒险"
+      ],
+      "author": "七度魚",
+      "name": "地球尽头",
+      "topic_img": "diqiujintou-qiduyu.jpg",
+      "region_name": "国漫",
+      "region": "cn"
+    },
+    {
+      "comic_id": "dengluweilaiyimonian-changpanyongzhe",
+      "type_names": [
+        "其它"
+      ],
+      "author": "常盘勇者",
+      "name": "登陆未来一万年",
+      "topic_img": "dengluweilaiyimonian-changpanyongzhe.jpg",
+      "region_name": "国漫",
+      "region": "cn"
+    },
+    {
+      "comic_id": "wufaduidirentongxiashashoudewangmingqianjin-shanbentomomitu",
+      "type_names": [
+        "其它"
+      ],
+      "author": "山本ともみつ",
+      "name": "无法对敌人痛下杀手的亡命千金",
+      "topic_img": "wufaduidirentongxiashashoudewangmingqianjin-shanbentomomitu.jpg",
+      "region_name": "日本",
+      "region": "jp"
+    },
+    {
+      "comic_id": "mojieshoumenren-yuewenmanhua",
+      "type_names": [
+        "穿越",
+        "格斗"
+      ],
+      "author": "阅文漫画",
+      "name": "万界守门人",
+      "topic_img": "mojieshoumenren-yuewenmanhua.jpg",
+      "region_name": "国漫",
+      "region": "cn"
+    },
+    {
+      "comic_id": "weiliaonushenmenweiliaopuxuke-kkam",
+      "type_names": [
+        "恋爱"
+      ],
+      "author": "KKAM",
+      "name": "为了女神们：为了普绪克",
+      "topic_img": "weiliaonushenmenweiliaopuxuke-kkam.jpg",
+      "region_name": "日本",
+      "region": "jp"
+    },
+    {
+      "comic_id": "yiquanchaoren-one",
+      "type_names": [
+        "武侠",
+        "格斗",
+        "搞笑"
+      ],
+      "author": "one",
+      "name": "一拳超人",
+      "topic_img": "yiquanchaoren-one.jpg",
+      "region_name": "日本",
+      "region": "jp"
+    },
+    {
+      "comic_id": "zhangfumingmingshishengqishi-jagae",
+      "type_names": [
+        "恋爱"
+      ],
+      "author": "JAGAE",
+      "name": "丈夫明明是圣骑士",
+      "topic_img": "zhangfumingmingshishengqishi-jagae.jpg",
+      "region_name": "日本",
+      "region": "jp"
+    },
+    {
+      "comic_id": "weikongjuzuoaidenishuizhongbochong-lantianmaroyaka",
+      "type_names": [
+        "恋爱"
+      ],
+      "author": "蓝田まろやか",
+      "name": "为恐惧做爱的你睡中播种",
+      "topic_img": "weikongjuzuoaidenishuizhongbochong-lantianmaroyaka.jpg",
+      "region_name": "日本",
+      "region": "jp"
+    },
+    {
+      "comic_id": "doupocangqiong-zhiyinmankerenxiang",
+      "type_names": [
+        "mohuan",
+        "dongzuo",
+        "玄幻"
+      ],
+      "author": "知音漫客 任翔",
+      "name": "斗破苍穹",
+      "topic_img": "doupocangqiong-zhiyinmankerenxiang.jpg",
+      "region_name": "国漫",
+      "region": "cn"
+    },
+    {
+      "comic_id": "wochengliaofanpaimendejinzhu-licojogenbomhanbangul",
+      "type_names": [
+        "奇幻"
+      ],
+      "author": "LICO,JOGEN/Bom Han Bang-ul",
+      "name": "我成了反派们的金主",
+      "topic_img": "wochengliaofanpaimendejinzhu-licojogenbomhanbangul.jpg",
+      "region_name": "韩国",
+      "region": "kr"
+    },
+    {
+      "comic_id": "kasurich-yuziai",
+      "type_names": [
+        "其它"
+      ],
+      "author": "御自愛",
+      "name": "kasurich",
+      "topic_img": "kasurich-yuziai.jpg",
+      "region_name": "日本",
+      "region": "jp"
+    },
+    {
+      "comic_id": "zhongguoliangqixiansheng-quanyingsheng",
+      "type_names": [
+        "lingyi",
+        "搞笑"
+      ],
+      "author": "权迎升",
+      "name": "中国惊奇先生（神鬼七杀令）",
+      "topic_img": "zhongguoliangqixiansheng-quanyingsheng.jpg",
+      "region_name": "国漫",
+      "region": "cn"
+    },
+    {
+      "comic_id": "hanghaiwang-weitianrongyilang",
+      "type_names": [
+        "riman",
+        "热血",
+        "剧情",
+        "少年"
+      ],
+      "author": "尾田荣一郎",
+      "name": "航海王",
+      "topic_img": "hanghaiwang-weitianrongyilang.jpg",
+      "region_name": "日本",
+      "region": "jp"
+    },
+    {
+      "comic_id": "wozhenmeixiangzhongshenga-pikapi",
+      "type_names": [
+        "zhongsheng",
+        "后宫"
+      ],
+      "author": "噼咔噼",
+      "name": "我真没想重生啊",
+      "topic_img": "wozhenmeixiangzhongshenga-pikapi.jpg",
+      "region_name": "国漫",
+      "region": "cn"
+    },
+    {
+      "comic_id": "chuanwu-gkgongfang",
+      "type_names": [
+        "lingyi",
+        "古风"
+      ],
+      "author": "GK工坊",
+      "name": "传武",
+      "topic_img": "chuanwu-gkgongfang.jpg",
+      "region_name": "国漫",
+      "region": "cn"
+    },
+    {
+      "comic_id": "jueduijiangan-xianyueyekdrmti",
+      "type_names": [
+        "热血"
+      ],
+      "author": "僩㳞月夜,KDRM/TI",
+      "name": "绝对剑感",
+      "topic_img": "jueduijiangan-xianyueyekdrmti.jpg",
+      "region_name": "韩国",
+      "region": "kr"
+    },
+    {
+      "comic_id": "moutianchengweimoshen-xuankunjueduiwudijingangbupi",
+      "type_names": [
+        "古风",
+        "热血"
+      ],
+      "author": "玄坤绝对无敌,金刚不坏",
+      "name": "某天成为魔神",
+      "topic_img": "moutianchengweimoshen-xuankunjueduiwudijingangbupi.jpg",
+      "region_name": "韩国",
+      "region": "kr"
+    }
+  ]
+}

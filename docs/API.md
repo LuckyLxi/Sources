@@ -149,6 +149,7 @@ presentation: {showComments: true, commentReplies: true}
 - `Hazuki.convert`：UTF-8、Base64、MD5、SHA、HMAC、AES-ECB；其他算法可以随单文件入口打包实现。
 - `Hazuki.resources.readText`：读取注册对象中嵌入的文本资源，不访问宿主文件系统。
 - `Hazuki.images.reverseVerticalTiles(n)`：声明图片竖向分块重排；`comic.onImageLoad` 可同时提供下载 URL、请求头和 `segments`。自定义字节解密使用 `comic.transformImageBytes`。
+- `Hazuki.images.regions(regions, {width, height})`：声明任意区域重排，用于网格、横切、乱序等非竖条布局。实现 `comic.mapImageRegions(width, height, url, comicId, chapterId)`，宿主传入解码后的实际尺寸，插件返回 `{sx, sy, sw, sh, dx, dy}` 列表（不缩放），由宿主完成像素搬运。画布默认与原图同尺寸，未覆盖处透明；返回 `null` 表示不处理。非空结果优先于 `segments`，GIF 跳过；越界或格式错误会报 `plugin_invalid_image_regions`。
 - `Hazuki.log`、`delay`、`error`：日志、延时和错误。`Hazuki.error("AUTH_EXPIRED", message)` 可触发宿主的一次账号重试；更复杂的网站恢复逻辑放在插件中。
 - `Hazuki.locale`：当前应用语言（`zh_CN` 或 `en_US`），跟随应用设置及系统语言；`Hazuki.translate(text)`：解析语言映射，或按插件的 `translation` 表翻译原字符串。类式源的 `this.translate(text)` 使用相同规则。
 
@@ -324,7 +325,7 @@ comic: {
 
 - `menus: Record<string, SourceMenuEntry[]>`：通用菜单声明，按菜单调用处的 `menuId` 匹配，不限于收藏页。菜单项使用 `{value: '宿主选项值', title?: SourceText}`、`{action: '插件操作名', title: SourceText}` 或 `{id: '分组标识', title: SourceText, children: [...]}`。普通选项调用该菜单原有的回调；操作项在所有菜单关闭后调用所属源的 `actions[action]()`，支持插件交互、返回提示和错误提示。子菜单展开时父菜单缩小至 96% 并淡化，关闭子菜单后恢复。省略声明或声明为空数组时保留原菜单。`order` 是兼容旧收藏声明的 `value` 别名，两者不得同时出现。
 - `menus` 的菜单 ID 是调用方自定义的非空字符串，没有固定白名单。项目代码在 `HazukiFrostedMenuButton<T>`、`HazukiFrostedDropdown<T>` 或 `showHazukiFrostedMenu<T>` 传入 `pluginMenu: SourcePluginMenuBinding<T>(menuId: 'my.custom.menu')` 即可接入同一机制，无需增加协议枚举。组件从当前源读取声明；展示其他源的内容时应显式传入 `sourceKey`。宿主原选项值默认通过 `toString()` 与声明中的 `value` 匹配，可用 `valueId` 指定转换规则；返回值仍是原来的 `T` 类型。字符串值允许为空，插件操作名和分组 ID 不得为空。
-- 内置菜单调用 ID：`favorites.cloud.sort`（云收藏排序）、`favorites.local.sort`（本地收藏排序）、`search.sort`（搜索排序）、`comments.sort`（评论排序，列表和详情共用）、`reader.imageQuality`（阅读画质）、`comic.chapterGroup`（章节分组）、`account.loginMethod`（登录方式）、`plugin.settings.<设置键>`（插件设置中的下拉菜单）、`settings.chineseConversion`（中文转换，值为 `off/traditional/simplified`）、`settings.softwareUpdateSource`（软件更新源，值为 `jsDelivr/github/ghproxy`）。这些是现有调用点，并非限制新增 ID 的列表。普通选项必须匹配该调用处已有选项，未知值及空子菜单会被忽略；遗漏的可用选项追加到根菜单。本地收藏排序仍使用宿主的 `savedNewest/savedOldest/updatedNewest` 策略，插件可调整菜单分组和增加操作，无需改写宿主排序实现。
+- 内置菜单调用 ID：`favorites.cloud.sort`（云收藏排序）、`search.sort`（搜索排序）、`comments.sort`（评论排序，列表和详情共用）、`reader.imageQuality`（阅读画质）、`comic.chapterGroup`（章节分组）、`account.loginMethod`（登录方式）、`plugin.settings.<设置键>`（插件设置中的下拉菜单）。这些是现有调用点，并非限制新增 ID 的列表。普通选项必须匹配该调用处已有选项，未知值及空子菜单会被忽略；遗漏的可用选项追加到根菜单。本地收藏排序菜单完全由宿主定义，不读取任何插件菜单声明，`menus['favorites.local.sort']` 会被忽略。中文转换、软件更新源等应用级设置菜单同样只显示宿主选项，不接受插件菜单声明，`menus['settings.chineseConversion']` 和 `menus['settings.softwareUpdateSource']` 会被忽略。
 - 每个 `menus[menuId]` 最多四层、总计 100 项；同级普通值、操作名、分组 ID 分别不得重复，子菜单必须有内容。菜单定义相互隔离；停用或卸载的插件不能覆盖菜单。切换源或销毁菜单入口后，关闭已打开的菜单并取消所属插件交互。旧 `favoriteMenu` 继续作为 `menus['favorites.cloud.sort']` 的兼容声明；显式的同名 `menus` 条目优先，包括空数组。
 
 插件操作和固定操作按钮也使用同一套 `menus` 声明：
@@ -373,10 +374,6 @@ presentation: {
         {action: 'refreshLines', title: {zh: '刷新线路', en: 'Refresh lines'}},
       ],
     }],
-    'favorites.local.sort': [{
-      id: 'saved', title: {zh: '收藏时间', en: 'Date added'},
-      children: [{value: 'savedNewest'}, {value: 'savedOldest'}],
-    }],
   },
 }
 ```
@@ -387,8 +384,8 @@ presentation: {
 - `favoriteOrderLabels: Record<string, string | Record<string,string>>`：为 `favoriteOrders` 中的云收藏排序值声明标签，支持字符串或 `{zh, en}` 语言映射。未声明的旧编码保留兼容文案，其他值直接显示编码。例如 `favoriteOrders: ['recent'], favoriteOrderLabels: {recent: {zh: '最近收藏', en: 'Recently saved'}}`。
 - `favoriteMenu: SourceFavoriteMenuEntry[]`：可选的云收藏排序按钮菜单。未声明或为空数组时保留原来的平铺菜单；本地收藏不受影响。每项只声明一种行为：`{order: 'dd', title?: SourceText}` 选择已有排序值；`{action: 'exportFavorites', title: SourceText}` 调用插件注册对象的 `actions.exportFavorites()`；`{id: 'saved', title: SourceText, children: [...]}` 展开带动画的子菜单，父菜单保留并淡化。`title` 支持字符串、插件翻译字典和语言映射；排序项未提供标题时使用 `favoriteOrderLabels` 和原有兼容文案。示例：`favoriteMenu: [{id: 'saved', title: {zh: '收藏时间', en: 'Saved'}, children: [{order: 'dd'}, {order: 'da'}, {action: 'exportFavorites', title: {zh: '导出收藏', en: 'Export favorites'}}]}]`。
 - `favoriteMenu` 最多四层、总计 100 项；子菜单 `children` 不得为空，同级排序值、操作名、分组 ID 分别不得重复。排序项只能选择当前 `favoriteOrders` 中的值，不支持的项和因此变空的子菜单会被忽略，未出现在菜单中的有效排序自动追加到根菜单末尾，避免遗漏排序入口。操作项无需额外加入 `presentation.actions`，只需实现插件注册对象的 `actions` 回调；点击后先关闭所有菜单，再无参数调用该回调，沿用现有插件交互作用域，支持 `UI.dialog` 等交互、返回提示和错误提示。执行中禁用菜单按钮以避免重复调用；切源或入口销毁时关闭菜单并取消所属交互。云收藏仍在登录后显示该入口；仅声明操作、不声明排序时也可以显示菜单。
-- 本地收藏排序由宿主独立管理，固定支持 `savedNewest`（收藏时间倒序）、`savedOldest`（收藏时间正序）、`updatedNewest`（更新时间倒序），与当前插件的云收藏排序无关，偏好保存通用策略值。
-- `localFavoriteOrders`：兼容旧偏好，将历史插件排序值映射到上述通用策略；仅在迁移旧偏好时使用，迁移后切换漫画源不会改变本地排序。
+- 本地收藏排序由宿主独立管理，固定支持 `savedNewest`（收藏时间倒序）、`savedOldest`（收藏时间正序）、`readNewest`（最近阅读优先，依据本地阅读记录与阅读进度，未读条目排在最后），与当前插件的云收藏排序无关，偏好保存通用策略值。`updatedNewest`（更新时间）已下线：各源更新时间格式不一且收藏后不刷新，无法可靠排序，旧偏好自动迁移为 `readNewest`。
+- `localFavoriteOrders`：兼容旧偏好，将历史插件排序值映射到上述通用策略；仅在迁移旧偏好时使用，迁移后切换漫画源不会改变本地排序。映射目标仍接受 `updatedNewest` 以兼容已发布插件，加载时按 `readNewest` 处理；新插件应直接使用 `readNewest`。
 - 搜索排序的选中值和实际请求统一校验 `searchOrders`，无效值回退到有效的 `searchDefaultOrder` 或首个选项；未声明选项时使用空值，并隐藏排序入口。
 - 分类筛选按插件声明的选项分组顺序传递，`-全部` 表示值为空字符串、标签为“全部”。空值会保留位置；没有可用选项或选项加载失败时传空数组，由插件选择默认值，宿主不注入站点排序编码。
 - 已安装插件的运行时 `presentation` 按字段覆盖安装时声明，未覆盖的字段保留；搜索、聚合搜索、收藏和页面文案使用相同的合并结果。停用或卸载后，运行时声明不再生效。

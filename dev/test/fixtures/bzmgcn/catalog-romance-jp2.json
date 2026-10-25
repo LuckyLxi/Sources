@@ -1,0 +1,406 @@
+{
+  "next": "/api/bzmhq/amp_comic_list?type=lianai&region=jp&state=all&filter=*&page=3&limit=36&language=cn",
+  "items": [
+    {
+      "comic_id": "heisedanchunbai-yiming",
+      "type_names": [
+        "恋爱"
+      ],
+      "author": "佚名",
+      "name": "黑色但纯白",
+      "topic_img": "heisedanchunbai-yiming.jpg",
+      "region_name": "日本",
+      "region": "jp"
+    },
+    {
+      "comic_id": "fushenhouchengweiguaitan-weonjag",
+      "type_names": [
+        "恋爱"
+      ],
+      "author": "원작",
+      "name": "附身后成为怪谈",
+      "topic_img": "fushenhouchengweiguaitan-weonjag.jpg",
+      "region_name": "日本",
+      "region": "jp"
+    },
+    {
+      "comic_id": "lingrenzhixideliming-yiming",
+      "type_names": [
+        "恋爱"
+      ],
+      "author": "佚名",
+      "name": "令人窒息的黎明",
+      "topic_img": "lingrenzhixideliming-yiming.jpg",
+      "region_name": "日本",
+      "region": "jp"
+    },
+    {
+      "comic_id": "rangcanquejinglingzhonghuoxinshengdeyaoshixiansheng-gibatiyan",
+      "type_names": [
+        "恋爱"
+      ],
+      "author": "ぎばちゃん",
+      "name": "让残缺精灵重获新生的药师先生",
+      "topic_img": "rangcanquejinglingzhonghuoxinshengdeyaoshixiansheng-gibatiyan.jpg",
+      "region_name": "日本",
+      "region": "jp"
+    },
+    {
+      "comic_id": "gengyirenouzhuiruaihe-futianjinyiseshe",
+      "type_names": [
+        "恋爱"
+      ],
+      "author": "福田晋一,SE社",
+      "name": "更衣人偶坠入爱河",
+      "topic_img": "gengyirenouzhuiruaihe-futianjinyiseshe.jpg",
+      "region_name": "日本",
+      "region": "jp"
+    },
+    {
+      "comic_id": "wodehuxiqingmeizhuma-iteoneul",
+      "type_names": [
+        "恋爱"
+      ],
+      "author": "이터늘",
+      "name": "我的虎系青梅竹马",
+      "topic_img": "wodehuxiqingmeizhuma-iteoneul.jpg",
+      "region_name": "日本",
+      "region": "jp"
+    },
+    {
+      "comic_id": "fangxuehoulanyouhui-rututihu",
+      "type_names": [
+        "恋爱",
+        "纯爱"
+      ],
+      "author": "ルッチーフ",
+      "name": "放学后篮友会",
+      "topic_img": "fangxuehoulanyouhui-rututihu.jpg",
+      "region_name": "日本",
+      "region": "jp"
+    },
+    {
+      "comic_id": "fulishangsi-ziseo",
+      "type_names": [
+        "恋爱"
+      ],
+      "author": "Ziseo",
+      "name": "福利上司",
+      "topic_img": "fulishangsi-ziseo.jpg",
+      "region_name": "日本",
+      "region": "jp"
+    },
+    {
+      "comic_id": "shengjunxiangyaochunjideshenghuo-zhaohean",
+      "type_names": [
+        "恋爱",
+        "搞笑"
+      ],
+      "author": "朝贺庵",
+      "name": "圣君想要纯洁的生活",
+      "topic_img": "shengjunxiangyaochunjideshenghuo-zhaohean.jpg",
+      "region_name": "日本",
+      "region": "jp"
+    },
+    {
+      "comic_id": "citrusganjuweixiangqi-sanlangtai",
+      "type_names": [
+        "恋爱",
+        "纯爱"
+      ],
+      "author": "三郎太",
+      "name": "citrus~柑橘味香气~",
+      "topic_img": "citrusganjuweixiangqi-sanlangtai.jpg",
+      "region_name": "日本",
+      "region": "jp"
+    },
+    {
+      "comic_id": "nuzhuangnanshengxiangtuoxiaqunzi-sinagire",
+      "type_names": [
+        "恋爱",
+        "搞笑"
+      ],
+      "author": "しなぎれ",
+      "name": "女装男生想脱下裙子！",
+      "topic_img": "nuzhuangnanshengxiangtuoxiaqunzi-sinagire.jpg",
+      "region_name": "日本",
+      "region": "jp"
+    },
+    {
+      "comic_id": "tuogui-kimyeonghan",
+      "type_names": [
+        "恋爱"
+      ],
+      "author": "Kim Yeonghan",
+      "name": "脱轨",
+      "topic_img": "tuogui-kimyeonghan.jpg",
+      "region_name": "日本",
+      "region": "jp"
+    },
+    {
+      "comic_id": "zhuanwujuedeyiyeyuanyuanbugou-ddigim",
+      "type_names": [
+        "恋爱"
+      ],
+      "author": "띠김",
+      "name": "专务觉得一夜远远不够",
+      "topic_img": "zhuanwujuedeyiyeyuanyuanbugou-ddigim.jpg",
+      "region_name": "日本",
+      "region": "jp"
+    },
+    {
+      "comic_id": "solstice-sojang",
+      "type_names": [
+        "恋爱"
+      ],
+      "author": "소장",
+      "name": "Solstice",
+      "topic_img": "solstice-sojang.jpg",
+      "region_name": "日本",
+      "region": "jp"
+    },
+    {
+      "comic_id": "qingchicaomei-jeonghu",
+      "type_names": [
+        "恋爱"
+      ],
+      "author": "정후",
+      "name": "请吃草莓",
+      "topic_img": "qingchicaomei-jeonghu.jpg",
+      "region_name": "日本",
+      "region": "jp"
+    },
+    {
+      "comic_id": "bihuagongzhudeniaijihua-yezeyoujihui",
+      "type_names": [
+        "恋爱"
+      ],
+      "author": "野泽佑季恵",
+      "name": "壁花公主的溺爱计划",
+      "topic_img": "bihuagongzhudeniaijihua-yezeyoujihui.jpg",
+      "region_name": "日本",
+      "region": "jp"
+    },
+    {
+      "comic_id": "luomeiliyazhanjibojueqianjindadaomowangzhihoufaxianrenleichujingshizaibumiaoyushizujianjundui-youshanriyoushanghuliang",
+      "type_names": [
+        "恋爱"
+      ],
+      "author": "有山リョウ 上戸亮",
+      "name": "罗梅莉娅战记~伯爵千金，打倒魔王之後发现人类处境实在不妙於是组建军队~",
+      "topic_img": "luomeiliyazhanjibojueqianjindadaomowangzhihoufaxianrenleichujingshizaibumiaoyushizujianjundui-youshanriyoushanghuliang.jpg",
+      "region_name": "日本",
+      "region": "jp"
+    },
+    {
+      "comic_id": "youlidaowaibeiqifuliaogebian-xiaolongkotatu",
+      "type_names": [
+        "恋爱"
+      ],
+      "author": "小龙（こたつ）",
+      "name": "由里到外被欺负了个遍",
+      "topic_img": "youlidaowaibeiqifuliaogebian-xiaolongkotatu.jpg",
+      "region_name": "日本",
+      "region": "jp"
+    },
+    {
+      "comic_id": "cheyezhige-qinshanxiaoxueguan",
+      "type_names": [
+        "恋爱"
+      ],
+      "author": "琴山,小学馆",
+      "name": "彻夜之歌",
+      "topic_img": "cheyezhige-qinshanxiaoxueguan.jpg",
+      "region_name": "日本",
+      "region": "jp"
+    },
+    {
+      "comic_id": "duiwolaishuotaiduoqingdelaoban-saelddo",
+      "type_names": [
+        "恋爱"
+      ],
+      "author": "샐또",
+      "name": "对我来说太多情的老板",
+      "topic_img": "duiwolaishuotaiduoqingdelaoban-saelddo.jpg",
+      "region_name": "日本",
+      "region": "jp"
+    },
+    {
+      "comic_id": "butanlianaijiuhuisi-pusnauyeonhyi",
+      "type_names": [
+        "恋爱"
+      ],
+      "author": "pusna 우연희",
+      "name": "不谈恋爱就会死！",
+      "topic_img": "butanlianaijiuhuisi-pusnauyeonhyi.jpg",
+      "region_name": "日本",
+      "region": "jp"
+    },
+    {
+      "comic_id": "wodenuxingpengyouyiwaidiyouqiubiying-rokuro",
+      "type_names": [
+        "恋爱"
+      ],
+      "author": "ろくろ",
+      "name": "我的女性朋友意外地有求必应",
+      "topic_img": "wodenuxingpengyouyiwaidiyouqiubiying-rokuro.jpg",
+      "region_name": "日本",
+      "region": "jp"
+    },
+    {
+      "comic_id": "zaichuangshangqingxianshouqiwuqi-hertz",
+      "type_names": [
+        "恋爱"
+      ],
+      "author": "Hertz",
+      "name": "在床上请先收起武器",
+      "topic_img": "zaichuangshangqingxianshouqiwuqi-hertz.jpg",
+      "region_name": "日本",
+      "region": "jp"
+    },
+    {
+      "comic_id": "shuiqianqinwen-icaeeun",
+      "type_names": [
+        "恋爱"
+      ],
+      "author": "이채은",
+      "name": "睡前亲吻",
+      "topic_img": "shuiqianqinwen-icaeeun.jpg",
+      "region_name": "日本",
+      "region": "jp"
+    },
+    {
+      "comic_id": "xueshenghuiyeyoudong-wuzhimalu",
+      "type_names": [
+        "恋爱"
+      ],
+      "author": "无知麻吕",
+      "name": "学生会也有洞!",
+      "topic_img": "xueshenghuiyeyoudong-wuzhimalu.jpg",
+      "region_name": "日本",
+      "region": "jp"
+    },
+    {
+      "comic_id": "mingmingshipeijiaoquebeiguodubaohudegongjueshenshenniai-mikazukimiyahayashibanribaonblst",
+      "type_names": [
+        "恋爱"
+      ],
+      "author": "Mikazuki Miya Hayashi Banri BAON BLST",
+      "name": "明明是配角却被过度保护的公爵深深溺爱？",
+      "topic_img": "mingmingshipeijiaoquebeiguodubaohudegongjueshenshenniai-mikazukimiyahayashibanribaonblst.jpg",
+      "region_name": "日本",
+      "region": "jp"
+    },
+    {
+      "comic_id": "zhiyouheyuyan-kongbiji",
+      "type_names": [
+        "恋爱"
+      ],
+      "author": "콩비지",
+      "name": "智友和宇延",
+      "topic_img": "zhiyouheyuyan-kongbiji.jpg",
+      "region_name": "日本",
+      "region": "jp"
+    },
+    {
+      "comic_id": "zhiweigongjuezhizi-lanyongroal",
+      "type_names": [
+        "恋爱"
+      ],
+      "author": "Lanyong Roal",
+      "name": "只为公爵之子",
+      "topic_img": "zhiweigongjuezhizi-lanyongroal.jpg",
+      "region_name": "日本",
+      "region": "jp"
+    },
+    {
+      "comic_id": "nixianghewowandiancijidema-solhan",
+      "type_names": [
+        "恋爱"
+      ],
+      "author": "솔한",
+      "name": "你想和我玩点刺激的吗？",
+      "topic_img": "nixianghewowandiancijidema-solhan.jpg",
+      "region_name": "日本",
+      "region": "jp"
+    },
+    {
+      "comic_id": "renshengnizhuanbeichuguibeiwuxiandewojingbeiquanxiaodiyimeishaonudaotie-ikagutiei",
+      "type_names": [
+        "恋爱"
+      ],
+      "author": "いかぐちえい",
+      "name": "人生逆转：被出轨被诬陷的我，竟被全校第一美少女倒贴",
+      "topic_img": "renshengnizhuanbeichuguibeiwuxiandewojingbeiquanxiaodiyimeishaonudaotie-ikagutiei.jpg",
+      "region_name": "日本",
+      "region": "jp"
+    },
+    {
+      "comic_id": "meiweidelianrufagun-yuje",
+      "type_names": [
+        "恋爱"
+      ],
+      "author": "유제",
+      "name": "美味的炼乳法棍",
+      "topic_img": "meiweidelianrufagun-yuje.jpg",
+      "region_name": "日本",
+      "region": "jp"
+    },
+    {
+      "comic_id": "cuoweideqingchun-qianyeyiero",
+      "type_names": [
+        "恋爱"
+      ],
+      "author": "浅野一二O",
+      "name": "错位的青春",
+      "topic_img": "cuoweideqingchun-qianyeyiero.jpg",
+      "region_name": "日本",
+      "region": "jp"
+    },
+    {
+      "comic_id": "wangzitongxuewurennengduo-hinoedamiyako",
+      "type_names": [
+        "恋爱"
+      ],
+      "author": "ひのえだみやこ",
+      "name": "王子同学无人能躲！",
+      "topic_img": "wangzitongxuewurennengduo-hinoedamiyako.jpg",
+      "region_name": "日本",
+      "region": "jp"
+    },
+    {
+      "comic_id": "zhixiangjiaohuandenianjiifboyslove-guiairi",
+      "type_names": [
+        "恋爱",
+        "纯爱"
+      ],
+      "author": "桂あいり",
+      "name": "只想交欢的年纪 if Boys Love",
+      "topic_img": "zhixiangjiaohuandenianjiifboyslove-guiairi.jpg",
+      "region_name": "日本",
+      "region": "jp"
+    },
+    {
+      "comic_id": "heshangsidemimixingwei-yiming",
+      "type_names": [
+        "恋爱"
+      ],
+      "author": "佚名",
+      "name": "和上司的秘密行为",
+      "topic_img": "heshangsidemimixingwei-yiming.jpg",
+      "region_name": "日本",
+      "region": "jp"
+    },
+    {
+      "comic_id": "yuerxiaoshuonuzhujiaodesaozi-beomramgeumnunsae",
+      "type_names": [
+        "恋爱"
+      ],
+      "author": "범람 금눈새",
+      "name": "育儿小说女主角的嫂子",
+      "topic_img": "yuerxiaoshuonuzhujiaodesaozi-beomramgeumnunsae.jpg",
+      "region_name": "日本",
+      "region": "jp"
+    }
+  ]
+}
