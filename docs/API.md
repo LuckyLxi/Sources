@@ -60,7 +60,7 @@ dart run tool/build_source_plugin.dart ../HazukiSources/docs/examples/example.js
 
 ## 注册和数据接口
 
-入口调用一次 `Hazuki.registerSource({...})`，或声明继承 `HazukiSource`、`ComicSource` 的类，由宿主实例化并注册。插件身份注册后锁定。联网和数据读写的初始化放在 `init()` 中，首次使用时执行；导入仅校验身份与接口，不执行 `init()` 或访问用户数据。必须提供：
+入口调用一次 `Hazuki.registerSource({...})`，或声明继承 `HazukiSource` 的类，由宿主实例化并注册。插件身份注册后锁定。联网和数据读写的初始化放在 `init()` 中，首次使用时执行；导入仅校验身份与接口，不执行 `init()` 或访问用户数据。必须提供：
 
 - `search.load(keyword, options, page)`：页码从 1 开始，返回 `{comics, maxPage}`。
 - `comic.loadInfo(id)`：返回详情，`chapters` 是章节 ID 到标题的映射；`tags` 是命名空间到标签数组的映射。
@@ -142,7 +142,7 @@ presentation: {showComments: true, commentReplies: true}
 ## 宿主 SDK
 
 - `Hazuki.http`：通用 GET、POST 等请求，返回状态、响应头、正文和可选错误；网站状态含义由插件判断。
-- `Hazuki.html.parse(html)`：解析静态 HTML，返回支持 CSS 选择器的文档；也可使用 `new HtmlDocument(html)`。支持文本、属性、子节点、父元素及相邻元素读取，使用后调用 `dispose()` 释放文档。文档按插件引擎隔离，关闭或替换引擎时自动清理。
+- `Hazuki.html.parse(html)`：解析静态 HTML，返回支持 CSS 选择器的文档。支持文本、属性、子节点、父元素及相邻元素读取，使用后调用 `dispose()` 释放文档。文档按插件引擎隔离，关闭或替换引擎时自动清理。
 - `Hazuki.cookies`：插件私有 Cookie；`Hazuki.storage`：插件私有 JSON 数据。写操作必须 `await`，特别是登录后要立即读取的 token。
 - `Hazuki.secrets`：插件作用域的安全字符串存储；现有 `account`、`token` 和 Cookie 仍使用原安全存储，便于升级关联。
 - `Hazuki.settings`：读取声明的默认值或用户设置，写入当前插件的设置。
@@ -154,6 +154,8 @@ presentation: {showComments: true, commentReplies: true}
 - `Hazuki.locale`：当前应用语言（`zh_CN` 或 `en_US`），跟随应用设置及系统语言；`Hazuki.translate(text)`：解析语言映射，或按插件的 `translation` 表翻译原字符串。类式源的 `this.translate(text)` 使用相同规则。
 
 脚本在独立 QuickJS 引擎中运行，同步执行限制为 5 秒、内存限制为 64 MiB，初始化等待最多 90 秒。网络、Cookie、存储和资源均绑定已注册插件的 ID。
+
+插件可用的全局对象只有 `Hazuki`、`HazukiSource`，以及通用的 `setTimeout`、`setInterval` 和 `console`。宿主不兼容 venera 插件 API：`ComicSource`、`Network`、`Convert`、`HtmlDocument`、`fetch`、`UI`、`APP`、`Image`、`Comic`、`ComicDetails`、`Comment`、`ImageLoadingConfig`、`createUuid`、`randomInt`、`setClipboard`、`getClipboard`、`compute` 等均不存在。由 venera 源改写时，网络、编解码、HTML 解析分别改用 `Hazuki.http`、`Hazuki.convert`、`Hazuki.html.parse`；漫画、详情、评论直接返回普通对象；交互改用 `Hazuki.ui`；`modifyImage` 图片重排改用 `comic.mapImageRegions` 或 `Hazuki.images.reverseVerticalTiles`。
 
 ### 获取并解析 HTML
 
@@ -512,7 +514,7 @@ Windows 每次授权使用独立 WebView2 环境及目录；缺少运行时时�
 
 ### 章节分组
 
-`comic.loadInfo` 可返回 `chapterGroups: [{id, title, chapters:[{id,title}, ...]}, ...]`，也适用于 `new ComicDetails({...})`。有非空分组时它优先于旧 `chapters`；仅用分组时可以省略旧字段。分组和组内章节均按数组顺序使用，章节 ID 必须在整部漫画内唯一；非法结构、重复组 ID 或重复章节 ID 会报错。普通对象的数字键顺序无法用于表达任意阅读顺序，旧插件应使用 Map。
+`comic.loadInfo` 可返回 `chapterGroups: [{id, title, chapters:[{id,title}, ...]}, ...]`。有非空分组时它优先于旧 `chapters`；仅用分组时可以省略旧字段。分组和组内章节均按数组顺序使用，章节 ID 必须在整部漫画内唯一；非法结构、重复组 ID 或重复章节 ID 会报错。普通对象的数字键顺序无法用于表达任意阅读顺序，旧插件应使用 Map。
 
 详情和阅读器章节面板支持选组；阅读器默认当前章节所属组，上一章和下一章不跨组。下载全选作用于当前组，切组保留已选项，确认按整部漫画的源顺序提交。章节 ID 不添加组前缀；组内位置不能代替全局位置。新增下载元数据保存组信息，磁盘目录编号与阅读顺序分开管理；旧目录不因切组而改名，旧下载仍可读取。旧下载中缺失的分组不会从标题猜测恢复。
 

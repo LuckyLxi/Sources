@@ -161,15 +161,14 @@ type SourceExplore =
 interface SourceHttpResponse<T> {
   status: number; body: T; headers: Record<string, string | string[]>;
 }
-/** Parsed static HTML. Call dispose() after extracting data. */
-declare class HtmlDocument {
-  constructor(html: string);
+/** Parsed static HTML from Hazuki.html.parse(). Call dispose() after extracting data. */
+interface HtmlDocument {
   querySelector(query: string): HtmlElement | null;
   querySelectorAll(query: string): HtmlElement[];
   getElementById(id: string): HtmlElement | null;
   dispose(): void;
 }
-declare class HtmlElement {
+interface HtmlElement {
   readonly text: string;
   readonly attributes: Record<string, string>;
   readonly children: HtmlElement[];
@@ -184,7 +183,7 @@ declare class HtmlElement {
   querySelector(query: string): HtmlElement | null;
   querySelectorAll(query: string): HtmlElement[];
 }
-declare class HtmlNode {
+interface HtmlNode {
   readonly text: string;
   readonly type: 'text' | 'element' | 'comment' | 'document' | 'unknown';
   toElement(): HtmlElement | null;
