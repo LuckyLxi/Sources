@@ -149,6 +149,8 @@ presentation: {showComments: true, commentReplies: true}
 - `Hazuki.convert`：UTF-8、GBK、Base64、MD5、SHA、HMAC、AES-ECB/CBC/CFB/OFB、RSA 私钥解密；其他算法可以随单文件入口打包实现。
   - AES key 须为 16/24/32 字节，CBC/CFB/OFB 的 IV 须为 16 字节；宿主不做自动填充，ECB/CBC 输入须按 16 字节对齐，PKCS7 等填充由插件自行添加或去除。CFB/OFB 的 `blockSize` 为 1～16 字节分段（默认 16），输入长度须为其整数倍。
   - `decryptRsa(value, key, padding?)`：key 为 PEM（PKCS#1 或 PKCS#8）字符串或 DER 字节，padding 为 `pkcs1`（默认）或 `oaep`（SHA-1）。
+  - `hexEncode` / `hexDecode` 互转字节与十六进制字符串，`hexDecode` 遇到奇数长度或非十六进制字符抛 `plugin_invalid_hex`。
+  - `randomBytes(n)` 返回宿主生成的密码学安全随机字节（n 为 1～1024 的整数，否则抛 `plugin_invalid_random_length`）；`randomUUID()` 返回小写 v4 UUID。生成 nonce、设备 ID 等请求参数时应使用它们，不要用 `Math.random`。
   - 参数错误抛 `plugin_invalid_cipher_key`、`plugin_invalid_cipher_iv`、`plugin_invalid_cipher_input`、`plugin_invalid_cipher_block_size`、`plugin_invalid_rsa_key` 或 `plugin_invalid_rsa_padding`。
 - `Hazuki.resources.readText`：读取注册对象中嵌入的文本资源，不访问宿主文件系统。
 - `Hazuki.images.reverseVerticalTiles(n)`：声明图片竖向分块重排；`comic.onImageLoad` 可同时提供下载 URL、请求头和 `segments`。自定义字节解密使用 `comic.transformImageBytes`。

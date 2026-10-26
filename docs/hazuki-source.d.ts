@@ -195,6 +195,12 @@ interface SourceConvert {
   /** key: PEM (PKCS#1 / PKCS#8) string or DER bytes. */
   decryptRsa(value: SourceBytes, key: string | SourceBytes, padding?: 'pkcs1' | 'oaep'): ArrayBuffer;
   hexEncode(bytes: SourceBytes): string;
+  /** Even-length hex string, case-insensitive; otherwise throws plugin_invalid_hex. */
+  hexDecode(hex: string): ArrayBuffer;
+  /** Cryptographically secure bytes; length is an integer 1..1024. */
+  randomBytes(length: number): ArrayBuffer;
+  /** Lowercase RFC 4122 version 4 UUID from secure random bytes. */
+  randomUUID(): string;
 }
 /** Parsed static HTML from Hazuki.html.parse(). Call dispose() after extracting data. */
 interface HtmlDocument {
