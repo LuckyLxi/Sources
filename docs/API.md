@@ -141,12 +141,15 @@ presentation: {showComments: true, commentReplies: true}
 
 ## 宿主 SDK
 
-- `Hazuki.http`：通用 GET、POST 等请求，返回状态、响应头、正文和可选错误；网站状态含义由插件判断。
+- `Hazuki.http`：通用 GET、POST 等请求，返回状态、最终 URL（跟随重定向后的地址）、响应头、正文和可选错误；网站状态含义由插件判断。最后一个参数 `extra` 只接受 `timeoutMs`（1000～120000 的整数，作用于发送和接收超时）、`followRedirects`（布尔，false 时直接返回 3xx，可读取 `location` 响应头）和 `maxRedirects`（0～20 的整数）；其他键或越界值抛 `plugin_invalid_http_extra`。
 - `Hazuki.html.parse(html)`：解析静态 HTML，返回支持 CSS 选择器的文档。支持文本、属性、子节点、父元素及相邻元素读取，使用后调用 `dispose()` 释放文档。文档按插件引擎隔离，关闭或替换引擎时自动清理。
 - `Hazuki.cookies`：插件私有 Cookie；`Hazuki.storage`：插件私有 JSON 数据。写操作必须 `await`，特别是登录后要立即读取的 token。
 - `Hazuki.secrets`：插件作用域的安全字符串存储；现有 `account`、`token` 和 Cookie 仍使用原安全存储，便于升级关联。
 - `Hazuki.settings`：读取声明的默认值或用户设置，写入当前插件的设置。
-- `Hazuki.convert`：UTF-8、Base64、MD5、SHA、HMAC、AES-ECB；其他算法可以随单文件入口打包实现。
+- `Hazuki.convert`：UTF-8、GBK、Base64、MD5、SHA、HMAC、AES-ECB/CBC/CFB/OFB、RSA 私钥解密；其他算法可以随单文件入口打包实现。
+  - AES key 须为 16/24/32 字节，CBC/CFB/OFB 的 IV 须为 16 字节；宿主不做自动填充，ECB/CBC 输入须按 16 字节对齐，PKCS7 等填充由插件自行添加或去除。CFB/OFB 的 `blockSize` 为 1～16 字节分段（默认 16），输入长度须为其整数倍。
+  - `decryptRsa(value, key, padding?)`：key 为 PEM（PKCS#1 或 PKCS#8）字符串或 DER 字节，padding 为 `pkcs1`（默认）或 `oaep`（SHA-1）。
+  - 参数错误抛 `plugin_invalid_cipher_key`、`plugin_invalid_cipher_iv`、`plugin_invalid_cipher_input`、`plugin_invalid_cipher_block_size`、`plugin_invalid_rsa_key` 或 `plugin_invalid_rsa_padding`。
 - `Hazuki.resources.readText`：读取注册对象中嵌入的文本资源，不访问宿主文件系统。
 - `Hazuki.images.reverseVerticalTiles(n)`：声明图片竖向分块重排；`comic.onImageLoad` 可同时提供下载 URL、请求头和 `segments`。自定义字节解密使用 `comic.transformImageBytes`。
 - `Hazuki.images.regions(regions, {width, height})`：声明任意区域重排，用于网格、横切、乱序等非竖条布局。实现 `comic.mapImageRegions(width, height, url, comicId, chapterId)`，宿主传入解码后的实际尺寸，插件返回 `{sx, sy, sw, sh, dx, dy}` 列表（不缩放），由宿主完成像素搬运。画布默认与原图同尺寸，未覆盖处透明；返回 `null` 表示不处理。非空结果优先于 `segments`，GIF 跳过；越界或格式错误会报 `plugin_invalid_image_regions`。

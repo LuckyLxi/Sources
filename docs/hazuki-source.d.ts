@@ -160,6 +160,41 @@ type SourceExplore =
   | {title: string; type: 'multiPageComicList'; load(page: number): Awaitable<ComicPage>};
 interface SourceHttpResponse<T> {
   status: number; body: T; headers: Record<string, string | string[]>;
+  /** Final URL after followed redirects; the request URL when none were followed. */
+  url: string;
+}
+/** Unknown keys or out-of-range values throw plugin_invalid_http_extra. */
+interface SourceHttpExtra {
+  /** Send and receive timeout, integer 1000..120000. Connect timeout stays host-defined. */
+  timeoutMs?: number;
+  /** false returns 3xx responses directly; read the location header yourself. */
+  followRedirects?: boolean;
+  /** Integer 0..20. */
+  maxRedirects?: number;
+}
+type SourceBytes = ArrayBuffer | Uint8Array | number[];
+/** AES never pads: ECB/CBC input must be 16-byte aligned, CFB/OFB input a multiple
+ * of blockSize (1..16 bytes, default 16). Keys are 16/24/32 bytes, IVs 16 bytes.
+ */
+interface SourceConvert {
+  encodeUtf8(text: string): ArrayBuffer; decodeUtf8(bytes: SourceBytes): string;
+  encodeGbk(text: string): ArrayBuffer; decodeGbk(bytes: SourceBytes): string;
+  encodeBase64(bytes: SourceBytes): string; decodeBase64(text: string): ArrayBuffer;
+  md5(bytes: SourceBytes): ArrayBuffer; sha1(bytes: SourceBytes): ArrayBuffer;
+  sha256(bytes: SourceBytes): ArrayBuffer; sha512(bytes: SourceBytes): ArrayBuffer;
+  hmac(key: SourceBytes, value: SourceBytes, hash: 'md5' | 'sha1' | 'sha256' | 'sha512'): ArrayBuffer;
+  hmacString(key: SourceBytes, value: SourceBytes, hash: 'md5' | 'sha1' | 'sha256' | 'sha512'): string;
+  encryptAesEcb(value: SourceBytes, key: SourceBytes): ArrayBuffer;
+  decryptAesEcb(value: SourceBytes, key: SourceBytes): ArrayBuffer;
+  encryptAesCbc(value: SourceBytes, key: SourceBytes, iv: SourceBytes): ArrayBuffer;
+  decryptAesCbc(value: SourceBytes, key: SourceBytes, iv: SourceBytes): ArrayBuffer;
+  encryptAesCfb(value: SourceBytes, key: SourceBytes, iv: SourceBytes, blockSize?: number): ArrayBuffer;
+  decryptAesCfb(value: SourceBytes, key: SourceBytes, iv: SourceBytes, blockSize?: number): ArrayBuffer;
+  encryptAesOfb(value: SourceBytes, key: SourceBytes, iv: SourceBytes, blockSize?: number): ArrayBuffer;
+  decryptAesOfb(value: SourceBytes, key: SourceBytes, iv: SourceBytes, blockSize?: number): ArrayBuffer;
+  /** key: PEM (PKCS#1 / PKCS#8) string or DER bytes. */
+  decryptRsa(value: SourceBytes, key: string | SourceBytes, padding?: 'pkcs1' | 'oaep'): ArrayBuffer;
+  hexEncode(bytes: SourceBytes): string;
 }
 /** Parsed static HTML from Hazuki.html.parse(). Call dispose() after extracting data. */
 interface HtmlDocument {
@@ -452,10 +487,13 @@ declare const Hazuki: {
   /** Parse HTML without executing scripts or loading page resources. */
   html: {parse(html: string): HtmlDocument};
   http: {
-    get(url: string, headers?: Record<string, string>, extra?: Record<string, unknown>): Promise<SourceHttpResponse<string>>;
-    post(url: string, headers?: Record<string, string>, body?: unknown, extra?: Record<string, unknown>): Promise<SourceHttpResponse<string>>;
-    sendRequest(method: string, url: string, headers?: Record<string, string>, body?: unknown, extra?: Record<string, unknown>): Promise<SourceHttpResponse<string>>;
-    fetchBytes(method: string, url: string, headers?: Record<string, string>, body?: unknown, extra?: Record<string, unknown>): Promise<SourceHttpResponse<ArrayBuffer>>;
+    get(url: string, headers?: Record<string, string>, extra?: SourceHttpExtra): Promise<SourceHttpResponse<string>>;
+    post(url: string, headers?: Record<string, string>, body?: unknown, extra?: SourceHttpExtra): Promise<SourceHttpResponse<string>>;
+    put(url: string, headers?: Record<string, string>, body?: unknown, extra?: SourceHttpExtra): Promise<SourceHttpResponse<string>>;
+    patch(url: string, headers?: Record<string, string>, body?: unknown, extra?: SourceHttpExtra): Promise<SourceHttpResponse<string>>;
+    delete(url: string, headers?: Record<string, string>, extra?: SourceHttpExtra): Promise<SourceHttpResponse<string>>;
+    sendRequest(method: string, url: string, headers?: Record<string, string>, body?: unknown, extra?: SourceHttpExtra): Promise<SourceHttpResponse<string>>;
+    fetchBytes(method: string, url: string, headers?: Record<string, string>, body?: unknown, extra?: SourceHttpExtra): Promise<SourceHttpResponse<ArrayBuffer>>;
   };
   storage: {get(key: string): unknown; set(key: string, value: unknown): Promise<void>; delete(key: string): Promise<void>};
   secrets: {get(key: string): Promise<string | null>; set(key: string, value: string): Promise<void>; delete(key: string): Promise<void>};
@@ -466,7 +504,7 @@ declare const Hazuki: {
     reverseVerticalTiles(segments: number): ImageLoadConfig;
     regions(regions: ImageRegion[], size?: {width?: number; height?: number}): ImageRegionLayout;
   };
-  convert: Record<string, (...args: any[]) => any>;
+  convert: SourceConvert;
   log(message: unknown, level?: string): void;
   delay(ms: number): Promise<void>;
   error(code: 'AUTH_EXPIRED' | string, message: string): Error;
