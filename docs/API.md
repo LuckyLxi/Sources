@@ -90,23 +90,76 @@ infoFields: [
 
 章节下载由宿主统一处理，默认支持多选和全选，插件无需提供额外接口或声明。
 
-## 阅读按钮上方的短统计行
+## 详情页顶部：标题下标签与阅读按钮上方的短统计行
 
-`comic.loadInfo().headerStats` 自由声明阅读按钮上方的短统计内容，名称、文案、数量和顺序由插件决定。宿主沿用现有文字样式、间距、加载占位和入场动画；不再根据 `likesCount`、`viewsCount`、`pageCount`、`tags` 或旧 `showPageCount` 开关自动拼接统计文案。省略或返回空数组时不显示统计内容。
+先检测 `(Hazuki.comicHeaderVersion ?? 1) >= 2`。旧宿主没有该字段，只认识 `action: 'none' | 'like'`，遇到下文的新动作会使详情加载报错；插件应在旧宿主上退回旧格式（见本节末尾）。
 
-**此处不可填写大量文本。** 这里只能放点赞数、浏览量、页数、评分、简短状态等短信息；不得放简介、长作者列表、公告或其他长段落。长文本必须放入 `infoFields` 或 `description`。建议只放少量简短项目，避免整行被截断；超出可用宽度时以省略号显示，不展开成长文本区域。
+### headerStats：阅读按钮上方的短统计行
+
+`comic.loadInfo().headerStats` 自由声明阅读按钮上方的短统计内容，名称、文案、数量和顺序由插件决定。宿主不根据 `likesCount`、`viewsCount`、`pageCount`、`tags` 或旧 `showPageCount` 开关自动拼接统计文案。省略或返回空数组时不显示统计内容。
+
+**此处不可填写大量文本。** 这里只能放点赞数、浏览量、页数、评分、简短状态等短信息；长文本必须放入 `infoFields` 或 `description`。整行只显示一行，手机端和桌面端都不超过下方操作按钮的宽度；放不下时各项按比例以省略号截断，不换行。
 
 ```javascript
 headerStats: [
-  {text: {zh: '123点赞', en: '123 likes'}, action: 'like'},
-  {text: {zh: '456浏览量', en: '456 views'}},
-  {text: {zh: '评分 9.8', en: 'Rating 9.8'}}
+  {text: {zh: '123点赞', en: '123 likes'}, icon: 'like', action: 'plugin', id: 'like'},
+  {text: {zh: '456浏览量', en: '456 views'}, icon: 'eye'},
+  {text: '原网页', icon: 'open', action: 'link', url: 'https://example.com/g/1'},
+  {text: '作者名', icon: 'person', action: 'search'}
 ]
 ```
 
-`text` 为字符串或语言映射，普通字符串支持插件翻译表。空文本项目自动隐藏，不重排其余项目。`action` 可选 `none`（默认）或 `like`；后者在手机端复用原点赞按钮和 `comic.likeComic` 回调，并保留点赞中防重复点击和选中状态。未提供点赞接口时该项目只显示文字。桌面统计行按声明顺序展示短文案，桌面原有的独立点赞按钮仍由 `comic.likeComic` 能力控制。语言映射随应用语言切换显示，点击点赞不会由宿主改写插件提供的统计文字。非法结构和未知操作会使详情加载报错。
+- `text` 为字符串或语言映射，普通字符串支持插件翻译表。空文本项目自动隐藏。
+- `icon` 为内置图标名，与弹窗 button 使用同一套名称（见「展示与组合组件」）；不认识的名称不显示图标。
+- `action` 默认 `none`，只显示文字。其余动作显示为无背景按钮：
+  - `plugin`：必须同时提供 `id`（1–64 个字符），点击时调用 `comic.onHeaderAction(comicId, id)`。执行期间其他 plugin 项暂不可点。
+  - `link`：必须提供 http(s) 的 `url`，用系统浏览器打开。
+  - `search` / `copy`：在当前源中搜索或复制 `value`，省略 `value` 时使用显示文字。
+- 宿主不再自动放置点赞按钮（包括桌面端原有的独立按钮），也不再读取 `isLiked`。需要点赞时由插件用 `plugin` 动作自行声明，并通过返回值更新图标和计数。
+- 旧动作 `like` 在新宿主上按普通文字显示；非法结构、缺少 `id` / `url`、非法图标名或未知动作会使详情加载报错。
 
-四个现有插件均已迁移：禁漫提供点赞数和浏览量，哔咔提供点赞数和页数，拷贝及热辣提供简短状态。没有旧字段回退，需要同步更新或重新导入插件。
+### onHeaderAction 回调
+
+```javascript
+comic: {
+  onHeaderAction: async (comicId, actionId) => {
+    if (actionId !== 'like') return;
+    await likeOnSite(comicId);
+    return {headerStats: buildStats({liked: true})};
+  }
+}
+```
+
+回调可以调用 `Hazuki.ui` 弹窗，例如先弹出评分窗口再提交。返回值可省略；返回对象时：
+
+- `headerStats` / `headerBadges`：替换整行统计或全部标签，宿主同时更新详情缓存。省略的字段保持不变。
+- `reload: true`：静默重新加载详情。新数据到达前继续显示当前内容，重新加载失败时也保留当前内容。
+
+回调抛出错误时宿主以提示条显示错误信息；用户关闭回调中的弹窗不提示错误。
+
+### headerBadges：标题下方的短标签
+
+```javascript
+headerBadges: [
+  {text: {zh: '连载中', en: 'Ongoing'}, tone: 'primary'},
+  {text: '付费', tone: 'warning'}
+]
+```
+
+最多显示 3 个，多余的忽略；每个标签单行显示，过长时截断。`tone` 可选 `normal`（默认）、`primary`、`warning`（主题第三色）、`error`。手机端和桌面端都显示在标题下方。
+
+旧的 `presentation.showComicStatus` 仍兼容：插件未提供 `headerBadges` 时，宿主继续从 `tags` 的「状态 / status」分组取第一个值显示。新插件请改用 `headerBadges`，该兼容方式后续会移除。
+
+### 兼容旧宿主
+
+```javascript
+const headerActions = (Hazuki.comicHeaderVersion ?? 1) >= 2;
+const likeStat = headerActions
+  ? {text, icon: liked ? 'liked' : 'like', action: 'plugin', id: 'like'}
+  : {text, action: 'like'};
+```
+
+旧宿主仍通过 `comic.likeComic(id, isLike)` 和 `isLiked` 显示点赞按钮；需要兼容旧版应用的插件可同时保留它们，新宿主会忽略。禁漫与哔咔已按此方式迁移。
 
 ## 评论入口声明
 
@@ -117,6 +170,37 @@ presentation: {showComments: true, commentReplies: true}
 ```
 
 禁漫、拷贝、哔咔已显式启用评论。热辣当前没有可用评论服务，不声明此字段，因此两处入口都隐藏。该声明不进入历史展示缓存，停用或卸载插件不会由旧缓存重新启用评论。详情页根据实际显示的标签数量建立控制器，隐藏评论时仍可正常切换相关推荐。
+
+评论对象可返回 `quotedComments: [{id, userName, content, avatar?, time?, score?, isLiked?, canUnlike?}]` 表示网站引用的历史楼层，按从旧到新的顺序排列。宿主复用嵌套评论卡片显示每层作者、正文和操作，点赞、回复分别使用该层自己的 `id`；同一 ID 在主评论、引用及已加载回复中的点赞状态同步。超过三层的引用默认仅显示首尾，可展开中间楼层。引用列表只显示一层，引用项自身的 `quotedComments` 不继续展开，不把引用当成回复分页，也不需要声明 `commentReplies`。
+
+`canUnlike` 默认 `true`，保持原有点赞／取消点赞行为。网站仅提供单向点赞时，对主评论和引用均返回 `canUnlike: false`；成功点赞后按钮显示已点赞并禁用，失败时恢复原状态。未支持这些字段的旧宿主仅显示主评论正文；需要更新宿主才能显示可交互引用及禁用单向取消赞。
+
+## 详情页自定义标签页
+
+插件可通过 `presentation.detailTabs` 在漫画详情页追加自己的标签页，排在宿主内置的「详情 / 评论 / 相关」之后，按数组顺序显示。是否显示只看声明，与单部漫画无关；声明后必须实现 `comic.loadDetailTab(comicId, tabId)`，否则导入失败（`plugin_detail_tab_callback_missing`）。
+
+```javascript
+presentation: {
+  detailTabs: [
+    {id: 'gallery', title: {zh_CN: '画廊', en_US: 'Gallery'}},
+    {id: 'notes', title: '说明'}
+  ]
+},
+comic: {
+  loadDetailTab: async (comicId, tabId) => [
+    {type: 'text', title: '简介', text: '纯文本内容'},
+    {type: 'images', title: '画廊', urls: ['https://example.com/1.jpg', 'https://example.com/2.jpg']}
+  ]
+}
+```
+
+- `id` 为 1～64 位字母、数字、`_`、`.`、`-`，同一插件内不可重复；`title` 为非空字符串或语言映射，普通字符串支持插件翻译表。最多声明 8 个，非法声明会使导入失败（`plugin_invalid_detail_tabs`）。
+- 打开详情页时，宿主与详情并行预取所有插件标签页的内容，不等切换过去才加载；离开详情页会取消未完成的请求。每个标签页独立加载，失败只影响该标签页并显示重试按钮，不影响详情及其他标签页。内容不缓存，每次打开详情页重新获取。
+- 返回值为区块数组，宿主按顺序自上而下渲染。返回空数组时标签页仍显示，内容区提示「暂无内容」。
+  - `text`：`{type: 'text', title?, text}`，纯文本，保留换行，不解析 Markdown 或 HTML，可长按选择复制。
+  - `images`：`{type: 'images', title?, urls}`，一行 3 张、统一 3:4 裁剪填满的网格；点击放大查看，长按可保存。图片与漫画封面使用同一图片加载通道。每个区块最多 300 张。
+  - `title` 可选，为纯字符串，显示在区块上方。
+- 最多返回 100 个区块。未知 `type` 的区块会被跳过，便于后续新增区块类型时旧版应用仍能显示其余内容；已知类型结构不合法时该标签页加载失败（`plugin_invalid_detail_tab_content`）。
 
 ## 云端收藏夹接口
 
@@ -398,7 +482,7 @@ presentation: {
 - 已安装插件的运行时 `presentation` 按字段覆盖安装时声明，未覆盖的字段保留；搜索、聚合搜索、收藏和页面文案使用相同的合并结果。停用或卸载后，运行时声明不再生效。
 - 详情信息栏使用 `comic.loadInfo().infoFields`，不使用旧 `showUploader`、`showCategories`、`showChineseTeam` 或 `detailTagGroups`。
 
-哔咔声明标签和分类分组并启用补查；禁漫只声明详情的 `Tag` 分组用于保存记录，列表展示保持原样。站点协议适配由插件负责，例如禁漫图片还原、域名与 HTTPS 端口修正，以及拷贝设备信息和限流恢复；宿主 HTTP 层不判断漫画源或域名。
+哔咔声明标签和分类分组并启用补查；禁漫开启列表标签展示，列表摘要包含接口返回的作者、标签和分类，并声明详情的 `Author`、`Tag` 分组用于保存记录及缺失标签补查。站点协议适配由插件负责，例如禁漫图片还原、域名与 HTTPS 端口修正，以及拷贝设备信息和限流恢复；宿主 HTTP 层不判断漫画源或域名。
 
 宿主缓存最后一次安装成功的展示规则：`showComicId`、`showTags`、`showComicStatus`、`listTagGroups`。停用或卸载后，历史记录仍使用缓存展示，但不启用按钮、登录或联网补查。重新安装使用新声明，更新失败保留旧插件及缓存；旧注册表从现有安装清单初始化缓存，无缓存的源使用通用展示，不改写原始记录。
 
@@ -597,7 +681,7 @@ try {
 
 文案遵守 SourceText 与插件 translation 规则。input 默认空字符串，select 默认未选择（单选为空字符串、多选为空数组），toggle 默认 false，clickImage 默认空数组；选项 value 必须非空且唯一。数字键盘只是输入提示，网站业务格式由插件校验。图片只接受 Uint8Array、number[] 或 base64 image Data URL；需要联网时先通过 Hazuki.http 获取。clickImage 返回原图坐标，忽略缩放留白；pointCount 可为 1–32 的精确点数，省略时最多 32 点。第一版不包含滑块拼图、HTML 或自定义绘制。
 
-buttons 为 1–4 项 `{id,text,role?,enabled?,validate?}`，role 默认 secondary，至多一个 primary。点击按钮返回 `{type:"action",id,values}`，不会自动关闭。validate 默认 false；设为 true 时校验 required、maxLength 和点数（精确 pointCount 或至少一点），失败在原地提示。select/toggle 的 notifyChange 默认为 false；启用时返回 `{type:"change",id,values}`。普通输入不逐字通知。values 是当前交互组件的完整值快照，不含文字、图片等展示组件。
+buttons 为 1–4 项（第三版起可为 0 项）`{id,text,role?,enabled?,validate?}`，role 默认 secondary，至多一个 primary。点击按钮返回 `{type:"action",id,values}`，不会自动关闭。validate 默认 false；设为 true 时校验 required、maxLength 和点数（精确 pointCount 或至少一点），失败在原地提示。select/toggle/rating 的 notifyChange 默认为 false；启用时返回 `{type:"change",id,values}`。普通输入不逐字通知。values 是当前交互组件的完整值快照，不含文字、图片等展示组件。
 
 收到 action/change 后窗口自动进入 busy，暂时禁用业务控件和按钮；插件完成联网或其他处理后调用 `await dialog.update({title?,content?,buttons?,values?,busy?,fieldErrors?})`。默认更新成功解除 busy，传 busy:true 可以继续显示处理中。未提供的标题、内容、按钮和值保持不变，content/buttons 提供时替换整个数组；相同 id 和类型的组件保留已有输入，values 可显式覆盖或清空。select 新选项不再包含旧选择时采用新默认值；点图换图清空旧坐标。补丁整体验证成功才应用，失败保留原窗口。
 
@@ -610,6 +694,45 @@ buttons 为 1–4 项 `{id,text,role?,enabled?,validate?}`，role 默认 seconda
 等待用户或排队期间暂停对应业务等待预算；事件交给插件后恢复业务计时，下一次 nextEvent 再暂停。初始化中的交互同样暂停初始化等待预算。同一操作累计前台交互等待上限 5 分钟，更新/刷新/重开不重置，单次前台排队上限 60 秒；应用处于系统后台的等待不消耗这两个预算。HTTP 自身超时和同步 JS 5 秒限制继续有效。每个窗口最多 64 个组件、select 最多 100 项；单图最多 4 MiB、合计最多 8 MiB、单图最多 400 万像素。普通文案单项最多 32 KiB、合计最多 256 KiB；输入 maxLength 默认 4096，可设置 1–32768（UTF-16 单元）。格式或大小不合法报 plugin_ui_invalid_options，损坏图片在窗口内显示错误且保留刷新/关闭操作。
 
 完整示例见 [通用表单与图形验证码](examples/dialog.js)，包括选择变化后更新窗口、同一窗口验证失败重试，以及 finally 关闭。
+
+### 展示与组合组件（第三版）
+
+先检测 `(Hazuki.ui?.dialogVersion ?? 0) >= 3`；旧宿主没有该字段，遇到下列 type、空 buttons 或 presentation 会报 plugin_ui_invalid_options。
+
+| type | 字段及用途 |
+| --- | --- |
+| image（扩展） | 新增 height（16–400，默认 200）与 shape（rect/circle）；circle 按 height 裁成圆形，适合头像 |
+| rating | label、initialValue、max（1–10，默认 5）、allowHalf、readOnly、required、notifyChange。可交互时点按或横向拖动选分，再次点按当前分值清除，返回数字（0 表示未评分）；allowHalf 时接受 0.5 步进，required 要求大于 0。readOnly 只用于展示，initialValue 可为任意小数（如站点均分 4.32），不出现在 values 中 |
+| row | children（1–8 项）、align（start/center/end/spaceBetween）。子组件横向排列，只能是 text、richText、image、button、rating、tags、progress，不能嵌套 row；每个子组件可设 flex（0–12），文字类默认 1 占满剩余宽度，其余默认 0 按自身宽度；row 内的 image 按图片比例确定宽度 |
+| button | text、icon、style（tonal 默认/filled/outlined/text/icon）、enabled、validate。放在内容区任意位置，点击与底部按钮一样返回 `{type:"action",id,values}`，validate 语义相同；id 不能与底部按钮重复。style 为 icon 时只显示图标、text 作为提示文字，此时 icon 必填 |
+| comics | title、layout（row 横向滑动，默认 / grid 三列网格）、items: [{id,title,subtitle?,cover?}]（1–100 项）。封面走与漫画封面相同的图片通道；点击后宿主关闭窗口并打开当前插件中该漫画的详情页 |
+| tags | label、values（1–100 个字符串）、action（search 默认/copy/none）。与详情页信息栏同款标签，search 在当前源中搜索该值，copy 复制；长按始终复制 |
+| info | rows: [{label,values,action?}]（1–32 行），格式和外观与详情页 infoFields 一致，action 默认 none；values 为空的行不显示 |
+| richText | spans: [{text,bold?,italic?,tone?,link?}]（1–200 段）。tone 可为 normal/secondary/error/primary；link 为 http(s) 地址，点击用系统浏览器打开。不解析 HTML 或 Markdown，text 中的换行即分段 |
+
+内置图标名：like、liked、dislike、favorite、favorited、star、star_outline、eye、comment、share、download、link、open、copy、search、tag、person、group、time、calendar、update、book、pages、image、lock、paid、coin、vip、gift、fire、trending、rank、language、info、warning、flag、check、close、add、remove、edit、delete、refresh、settings、more。名称只能由小写字母、数字和下划线组成；宿主不认识的名称不显示图标，便于以后新增。
+
+openDialog 新增 `presentation: "dialog" | "sheet"`，默认 dialog 为居中窗口；sheet 从底部升起，宽度最多 640、高度最多屏幕的 85%，适合列表、标签等较多内容，可下滑关闭。presentation 在打开时确定，update 不能切换；登录流程内的窗口始终以登录窗口样式显示。
+
+点击 comics 卡片或 search 标签时，宿主先以 reason `navigated` 关闭窗口再跳转。与 `user` 不同，`navigated` 不取消插件的原操作，插件收到 closed 后按正常结束处理即可。登录窗口内没有跳转入口，卡片和 search 标签不可点击。
+
+组件总数（含 row 内子组件）仍最多 64 个，id 在整个窗口内唯一；漫画标题、标签值、链接等文字计入合计 256 KiB 的文案限制。
+
+```js
+// E-Hentai 风格评分窗口：上方展示均分，下方让用户打半星评分。
+const dialog = await Hazuki.ui.openDialog({
+  title: "评分",
+  presentation: "sheet",
+  content: [
+    {id: "summary", type: "row", children: [
+      {id: "average", type: "rating", readOnly: true, initialValue: 4.32},
+      {id: "count", type: "text", text: "4.32 · 312 人评分", tone: "secondary"},
+    ]},
+    {id: "score", type: "rating", label: "我的评分", allowHalf: true, required: true},
+  ],
+  buttons: [{id: "submit", text: "提交", role: "primary", validate: true}],
+});
+```
 
 ### 通用 WebView
 

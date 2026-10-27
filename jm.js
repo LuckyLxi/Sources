@@ -659,7 +659,16 @@ class JmSession {
       id: String(comic.id),
       title: String(comic.name ?? ''),
       cover: this.cover(comic.id),
-      tags: [comic.category?.title, comic.category_sub?.title].filter(Boolean),
+      tags: [
+        ...new Set(
+          [
+            ...(typeof comic.author === 'string' ? [comic.author] : asArray(comic.author)),
+            ...asArray(comic.tags),
+            comic.category?.title,
+            comic.category_sub?.title,
+          ].filter(Boolean),
+        ),
+      ],
     };
   }
 
@@ -698,6 +707,44 @@ class JmSession {
 }
 
 const runtime = new JmSession();
+
+// 宿主 comicHeaderVersion >= 2 时点赞走 comic.onHeaderAction；旧宿主仍用 likeComic。
+const JM_HEADER_ACTIONS = (Hazuki.comicHeaderVersion ?? 1) >= 2;
+
+/** 详情页点赞状态，供 onHeaderAction 在不重载详情的情况下更新统计行。 */
+/** @type {Map<string, {likes: number, liked: boolean, views: string | number}>} */
+const JM_HEADER_STATE = new Map();
+
+/**
+ * @param {{likes: number, liked: boolean, views: string | number}} state
+ * @returns {SourceComicHeaderStat[]}
+ */
+function jmHeaderStats(state) {
+  const likeText = { zh: state.likes + '点赞', en: state.likes + ' likes' };
+  return [
+    JM_HEADER_ACTIONS
+      ? { text: likeText, icon: state.liked ? 'liked' : 'like', action: 'plugin', id: 'like' }
+      : { text: likeText, action: 'like' },
+    {
+      text: state.views === '' ? '' : { zh: state.views + '浏览量', en: state.views + ' views' },
+      ...(JM_HEADER_ACTIONS ? { icon: 'eye' } : {}),
+    },
+  ];
+}
+
+/**
+ * 返回 false 表示网站提示已评价过，计数不变。
+ * @param {string} id
+ */
+async function jmLike(id) {
+  const result = await runtime.post('/like', { id });
+  const message = String(result.msg || result.errorMsg || '');
+  if (/已經評價|已经评价|already/i.test(message)) return false;
+  if (result.code !== 200 || result.status === 'error') {
+    throw new Error(message || 'Failed to like comic');
+  }
+  return true;
+}
 
 /** @param {unknown} value */
 function jmCommentText(value) {
@@ -919,7 +966,9 @@ const JM_PRESENTATION = {
   dailyRecommendation: { searchOrder: 'mr' },
   showComicId: true,
   refreshCloudFavorites: true,
-  listTagGroups: ['Tag'],
+  showTags: true,
+  listTagGroups: ['Author', 'Tag'],
+  enrichMissingTags: true,
   favoriteOrderAliases: { '-datetime_updated': 'mp' },
   localFavoriteOrders: { mr: 'savedNewest', mp: 'updatedNewest' },
   dailyCheckIn: true,
@@ -1024,7 +1073,7 @@ const JM_SETTINGS = {
 const source = {
   id: 'jm',
   name: 'JMComic',
-  version: '2.8.0',
+  version: '2.9.1',
   apiVersion: 1,
 
   async init() {
@@ -1277,6 +1326,8 @@ const source = {
       if (!Object.keys(chapters).length) chapters[id] = '第1話';
       const likes = Number(album.likes || 0);
       const views = album.total_views == null ? '' : album.total_views;
+      const headerState = { likes, liked: Boolean(album.liked), views };
+      JM_HEADER_STATE.set(String(id), headerState);
       return {
         id,
         title: String(album.name ?? ''),
@@ -1298,15 +1349,7 @@ const source = {
           { label: { zh: '角色', en: 'Characters' }, values: asArray(album.actors), action: 'search' },
         ],
         viewsCount: views,
-        headerStats: [
-          {
-            text: { zh: likes + '点赞', en: likes + ' likes' },
-            action: 'like',
-          },
-          {
-            text: views === '' ? '' : { zh: views + '浏览量', en: views + ' views' },
-          },
-        ],
+        headerStats: jmHeaderStats(headerState),
         recommend: asArray(album.related_list).map((comic) => runtime.parseComic(comic)),
         isFavorite: Boolean(album.is_favorite),
         isLiked: Boolean(album.liked),
@@ -1341,6 +1384,25 @@ const source = {
         ...Hazuki.images.reverseVerticalTiles(segments),
       };
     },
+    onHeaderAction: async (id, action) => {
+      if (action !== 'like') return;
+      const state = JM_HEADER_STATE.get(String(id));
+      if (state?.liked) {
+        throw new Error(
+          Hazuki.translate({
+            zh: '已点赞，该源不支持取消点赞',
+            en: 'Already liked; this source does not support unliking',
+          }),
+        );
+      }
+      const counted = await jmLike(String(id));
+      // 运行时重建后没有缓存状态，让宿主重新加载详情取最新计数。
+      if (!state) return { reload: true };
+      state.liked = true;
+      if (counted) state.likes += 1;
+      return { headerStats: jmHeaderStats(state) };
+    },
+    // 旧宿主（comicHeaderVersion < 2）仍通过 likeComic 点赞，isLiked 也只供旧宿主使用。
     likeComic: async (id, isLike) => {
       if (isLike === false) {
         throw new Error(
@@ -1350,12 +1412,7 @@ const source = {
           }),
         );
       }
-      const result = await runtime.post('/like', { id });
-      const message = String(result.msg || result.errorMsg || '');
-      if (/已經評價|已经评价|already/i.test(message)) return;
-      if (result.code !== 200 || result.status === 'error') {
-        throw new Error(message || 'Failed to like comic');
-      }
+      await jmLike(String(id));
     },
     loadComments: async (id, subId, page, replyTo) => {
       const comicId = String(id);

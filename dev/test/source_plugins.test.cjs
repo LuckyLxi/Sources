@@ -5,7 +5,12 @@ const path = require("node:path");
 const test = require("node:test");
 const vm = require("node:vm");
 
-function plugin(id, respond = () => ({ status: 200, data: {} }), initial = {}) {
+function plugin(
+  id,
+  respond = () => ({ status: 200, data: {} }),
+  initial = {},
+  host = {},
+) {
   const storage = new Map(Object.entries(initial));
   const settings = new Map();
   const requests = [];
@@ -73,6 +78,8 @@ function plugin(id, respond = () => ({ status: 200, data: {} }), initial = {}) {
     locale: "zh_CN",
     translate: (text) =>
       typeof text === "string" ? text : text.zh || text.en || "",
+    // 宿主可选能力（如 comicHeaderVersion），默认模拟旧宿主。
+    ...host,
   };
   // Deliberately expose only API v1; legacy app globals are unavailable.
   const context = vm.createContext({ Hazuki: api });
@@ -137,6 +144,9 @@ test("JM declares ID rules and an independent recommendation search order", () =
   assert.ok(Object.hasOwn(source.presentation.searchOrders, order));
 });
 
+/** vm 上下文中的对象原型不同，比较前转换为普通 JSON。 */
+const plainJson = (value) => JSON.parse(JSON.stringify(value));
+
 function jmResponse(request, data) {
   const time = request.headers.tokenparam.split(",")[0];
   const key = crypto
@@ -170,12 +180,68 @@ test("JM resolves numeric and prefixed IDs through the album API without keyword
     assert.equal(result.comics[0].title, "ID result");
     assert.equal(result.comics[0].subTitle, undefined);
     assert.match(result.comics[0].cover, /\/media\/albums\/12345_3x4\.jpg$/);
-    assert.deepEqual(Array.from(result.comics[0].tags), ["Category"]);
+    assert.deepEqual(Array.from(result.comics[0].tags), [
+      "First",
+      "Second",
+      "Category",
+    ]);
     assert.equal(app.requests.length, 1);
     const nextPage = await app.source.search.load(keyword, [], 2);
     assert.equal(nextPage.comics.length, 0);
     assert.equal(nextPage.maxPage, 1);
   }
+});
+
+test("JM lists authors, tags and categories without extra detail requests", async () => {
+  const app = plugin("jm", (request) => {
+    assert.equal(new URL(request.url).pathname, "/search");
+    return jmResponse(request, {
+      content: [
+        {
+          id: 12345,
+          name: "List result",
+          author: "Artist, Jr.",
+          tags: ["Adventure", "Translated"],
+          category: { title: "Category" },
+          category_sub: { title: "Adventure" },
+        },
+        { id: 67890, name: "No metadata" },
+      ],
+      total: 2,
+    });
+  });
+  const result = await app.source.search.load("keyword", [], 1);
+  assert.deepEqual(Array.from(result.comics[0].tags), [
+    "Artist, Jr.",
+    "Adventure",
+    "Translated",
+    "Category",
+  ]);
+  assert.deepEqual(Array.from(result.comics[1].tags), []);
+  assert.equal(result.comics[0].subTitle, undefined);
+  assert.equal(app.requests.length, 1);
+});
+
+test("JM enables list tags and extracts authors and tags from saved details", async () => {
+  const app = plugin("jm", (request) =>
+    jmResponse(request, {
+      name: "Example",
+      author: ["Artist"],
+      tags: ["Adventure"],
+      works: ["Original"],
+      actors: ["Hero"],
+    }),
+  );
+  const { presentation } = app.source;
+  assert.equal(presentation.showTags, true);
+  assert.equal(presentation.enrichMissingTags, true);
+  const details = await app.source.comic.loadInfo("12345");
+  assert.deepEqual(
+    plainJson(
+      presentation.listTagGroups.flatMap((group) => details.tags[group]),
+    ),
+    ["Artist", "Adventure"],
+  );
 });
 
 test("JM falls back to keyword search when an ID is unavailable or has no valid album", async () => {
@@ -267,6 +333,94 @@ test("JM treats an existing vote as success and rejects unlike before a request"
     jmResponse(request, { code: 500, msg: "busy" }),
   );
   await assert.rejects(failed.source.comic.likeComic("12345", true), /busy/);
+});
+
+test("JM declares like as a plugin header action on newer hosts", async () => {
+  let likeMessage = "ok";
+  const app = plugin(
+    "jm",
+    (request) => {
+      const url = new URL(request.url);
+      if (url.pathname === "/like")
+        return jmResponse(request, { code: 200, msg: likeMessage });
+      return jmResponse(request, {
+        name: "Details",
+        likes: 10,
+        liked: false,
+        total_views: 99,
+      });
+    },
+    {},
+    { comicHeaderVersion: 2 },
+  );
+  const details = await app.source.comic.loadInfo("12345");
+  assert.deepEqual(plainJson(details.headerStats), [
+    {
+      text: { zh: "10点赞", en: "10 likes" },
+      icon: "like",
+      action: "plugin",
+      id: "like",
+    },
+    { text: { zh: "99浏览量", en: "99 views" }, icon: "eye" },
+  ]);
+  const liked = await app.source.comic.onHeaderAction("12345", "like");
+  assert.equal(liked.headerStats[0].icon, "liked");
+  assert.equal(liked.headerStats[0].text.en, "11 likes");
+  await assert.rejects(
+    app.source.comic.onHeaderAction("12345", "like"),
+    /不支持取消点赞|does not support unliking/,
+  );
+  assert.equal(
+    await app.source.comic.onHeaderAction("12345", "other"),
+    undefined,
+  );
+  // 网站提示已评价过时不重复计数；没有详情缓存时请求宿主重载。
+  likeMessage = "已經評價！";
+  const unknown = await app.source.comic.onHeaderAction("777", "like");
+  assert.deepEqual(plainJson(unknown), { reload: true });
+});
+
+test("Picacg toggles like through the plugin header action", async () => {
+  let action = "like";
+  const app = plugin(
+    "picacg",
+    (request) => {
+      if (request.url.endsWith("/like")) return { data: { data: { action } } };
+      if (request.url.endsWith("/recommendation"))
+        return { data: { data: { comics: [] } } };
+      if (request.url.includes("/eps?"))
+        return {
+          data: {
+            data: { eps: { docs: [{ order: 1, title: "First" }], pages: 1 } },
+          },
+        };
+      return {
+        data: {
+          data: {
+            comic: {
+              title: "Liked",
+              likesCount: 5,
+              isLiked: false,
+              pagesCount: 7,
+            },
+          },
+        },
+      };
+    },
+    { token: "pica-token" },
+    { comicHeaderVersion: 2 },
+  );
+  const details = await app.source.comic.loadInfo("comic-id");
+  assert.equal(details.headerStats[0].action, "plugin");
+  assert.equal(details.headerStats[0].icon, "like");
+  assert.equal(details.headerStats[1].icon, "pages");
+  const liked = await app.source.comic.onHeaderAction("comic-id", "like");
+  assert.equal(liked.headerStats[0].text.en, "6 likes");
+  assert.equal(liked.headerStats[0].icon, "liked");
+  action = "unlike";
+  const unliked = await app.source.comic.onHeaderAction("comic-id", "like");
+  assert.equal(unliked.headerStats[0].text.en, "5 likes");
+  assert.equal(unliked.headerStats[0].icon, "like");
 });
 
 test("JM deletes a folder with one clear request", async () => {
@@ -742,10 +896,10 @@ test("JM authorizes web comments on the first send", async () => {
   assert.equal(closeCount, 1);
   assert.equal(app.storage.get("webSession"), true);
   assert.equal(webOptions.completion, "manual");
-  assert.deepEqual(
-    Array.from(webOptions.cookieScopes[0].names),
-    ["AVS", "cf_clearance"],
-  );
+  assert.deepEqual(Array.from(webOptions.cookieScopes[0].names), [
+    "AVS",
+    "cf_clearance",
+  ]);
   assert.equal(new URL(app.requests[0].url).host, "18comic.vip");
   assert.equal(new URL(app.requests[0].url).pathname, "/");
   assert.equal(new URL(app.requests[1].url).pathname, "/ajax/album_comment");
@@ -788,10 +942,7 @@ test("JM posts web comments with captcha and reply fields", async () => {
   const app = plugin(
     "jm",
     (request) => {
-      assert.equal(
-        new URL(request.url).pathname,
-        "/ajax/album_comment",
-      );
+      assert.equal(new URL(request.url).pathname, "/ajax/album_comment");
       return { status: 200, data: { status: "ok" } };
     },
     { webSession: true },

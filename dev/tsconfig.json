@@ -9,5 +9,5 @@
     "types": [],
     "moduleDetection": "force"
   },
-  "files": ["../docs/hazuki-source.d.ts", "../jm.js", "../picacg.js", "../copy_manga.js", "../relamanhua.js", "../zaimanhua.js", "../bzmgcn.js"]
+  "files": ["../docs/hazuki-source.d.ts", "../jm.js", "../picacg.js", "../copy_manga.js", "../relamanhua.js", "../zaimanhua.js", "../bzmgcn.js", "../manhuagui.js", "../ehentai.js"]
 }

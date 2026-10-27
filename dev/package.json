@@ -4,7 +4,7 @@
   "scripts": {
     "test": "node --test test/*.test.cjs",
     "check": "tsc -p tsconfig.json && node --check scripts/update-plugin-index.cjs && node --check scripts/purge-plugin-cache.cjs && node --check test/plugin_index.test.cjs && node --check test/plugin_cache.test.cjs",
-    "format:check": "prettier --check ../picacg.js ../copy_manga.js ../relamanhua.js ../zaimanhua.js ../bzmgcn.js scripts/*.cjs test/plugin_index.test.cjs test/plugin_cache.test.cjs test/zaimanhua.test.cjs test/bzmgcn.test.cjs ../.github/workflows/update-plugin-index.yml",
+    "format:check": "prettier --check ../picacg.js ../copy_manga.js ../relamanhua.js ../zaimanhua.js ../bzmgcn.js ../manhuagui.js ../ehentai.js scripts/*.cjs test/plugin_index.test.cjs test/plugin_cache.test.cjs test/zaimanhua.test.cjs test/bzmgcn.test.cjs test/manhuagui.test.cjs test/ehentai.test.cjs ../.github/workflows/update-plugin-index.yml",
     "index:update": "node scripts/update-plugin-index.cjs",
     "index:check": "node scripts/update-plugin-index.cjs --check"
   },

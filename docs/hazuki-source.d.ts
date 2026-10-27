@@ -32,8 +32,33 @@ interface SourceComicInfoField {
  */
 interface SourceComicHeaderStat {
   text: SourceText;
-  /** Mobile inline like action; requires comic.likeComic. Otherwise text only. */
-  action?: 'none' | 'like';
+  /** Built-in icon name (comicHeaderVersion >= 2); unknown names render no icon. */
+  icon?: SourceDialogIcon;
+  /**
+   * comicHeaderVersion >= 2: actions render as borderless buttons.
+   * 'plugin' calls comic.onHeaderAction(comicId, id); 'link' opens url in the system browser;
+   * 'search' / 'copy' use value, falling back to the displayed text.
+   * 'like' is the retired host like button: older hosts only; newer hosts show it as plain text.
+   */
+  action?: 'none' | 'plugin' | 'link' | 'search' | 'copy' | 'like';
+  /** Required for 'plugin', 1–64 characters. */
+  id?: string;
+  /** Required for 'link', http(s) only. */
+  url?: string;
+  value?: string;
+}
+/** Short badge under the title (comicHeaderVersion >= 2); at most 3 are shown. */
+interface SourceComicHeaderBadge {
+  text: SourceText;
+  /** 'warning' uses the theme's tertiary color. */
+  tone?: 'normal' | 'primary' | 'warning' | 'error';
+}
+/** Returned by comic.onHeaderAction; omitted fields keep the current content. */
+interface SourceComicHeaderActionResult {
+  headerStats?: SourceComicHeaderStat[];
+  headerBadges?: SourceComicHeaderBadge[];
+  /** Silently reloads the details; the current content stays until it succeeds. */
+  reload?: boolean;
 }
 interface SourceComicDetails {
   /** The detail header does not display subTitle; never put authors here. */
@@ -48,8 +73,11 @@ interface SourceComicDetails {
    * Do not put large amounts of text here; use infoFields or description.
    */
   headerStats?: SourceComicHeaderStat[];
+  /** Replaces the legacy showComicStatus badge when non-empty. */
+  headerBadges?: SourceComicHeaderBadge[];
   /** Structured data for listTagGroups and existing header status, not detail rows. */
   tags?: Record<string, string[]>; recommend?: SourceComic[];
+  /** isLiked is read only by older hosts (comicHeaderVersion < 2). */
   isFavorite?: boolean; isLiked?: boolean; uploader?: string; pageCount?: number | string; subId?: string;
 }
 interface SourceChapterGroup {
@@ -145,6 +173,12 @@ interface SourceSetting {
 interface SourceComment {
   id: string; userName: string; avatar?: string; content: string;
   time?: string; score?: number; isLiked?: boolean; replyCount?: number; voteStatus?: number;
+  /** Website citation floors, oldest first. Each retains its own like/reply ID.
+   * Only one level is rendered; quoted items' quotedComments are ignored.
+   */
+  quotedComments?: Omit<SourceComment, 'quotedComments'>[];
+  /** Default true. False disables the like action after a successful like. */
+  canUnlike?: boolean;
 }
 interface SourceOptionGroup {
   /** Encode each option as "value-label" or just "value". */
@@ -253,6 +287,14 @@ type SourceButton = (
   | {id: 'imageQuality'; location: 'reading' | 'reader'}
   | {id: 'resetDeviceInfo'; location: 'advanced'; action: string}
 ) & {title?: SourceText; subtitle?: SourceText; successMessage?: SourceText};
+/** id: 1-64 chars of [A-Za-z0-9_.-], unique per plugin. */
+interface SourceDetailTab { id: string; title: SourceText }
+/** Rendered top to bottom. Unknown types are skipped; malformed known types fail the tab.
+ * text is plain text. images render 3 per row, cropped to 3:4, up to 300 per block.
+ */
+type SourceDetailTabBlock =
+  | {type: 'text'; title?: string; text: string}
+  | {type: 'images'; title?: string; urls: string[]};
 /** Shared menu declarations. Each item selects a host value, runs an action,
  * or opens a submenu. Up to four levels and 100 items per menu.
  */
@@ -274,6 +316,8 @@ interface SourcePresentation {
   menus?: Record<string, SourceMenuEntry[]>;
   /** Every button must explicitly name its existing UI slot. */
   buttons?: SourceButton[];
+  /** Up to 8 extra comic detail tabs after the built-in ones; requires comic.loadDetailTab. */
+  detailTabs?: SourceDetailTab[];
   searchOrders?: Record<string, string | Record<string, string>>; searchDefaultOrder?: string;
   /** Detail tag groups to flatten into saved/list tags. */
   listTagGroups?: string[];
@@ -348,7 +392,16 @@ interface HazukiSourceDefinition {
     transformImageBytes?: (bytes: Uint8Array, url: string, comicId: string, chapterId: string) => Awaitable<{bytes: Uint8Array; extension?: string}>;
     /** Runs after transformImageBytes with the decoded size; a non-empty layout takes precedence over segments. GIFs are skipped. */
     mapImageRegions?: (width: number, height: number, url: string, comicId: string, chapterId: string) => Awaitable<ImageRegionLayout | null | undefined>;
-    /** Provides the desktop like button and enables mobile headerStats like actions. */
+    /** Required by presentation.detailTabs. Prefetched with the details; up to 100 blocks.
+     * An empty array keeps the tab and shows an empty state.
+     */
+    loadDetailTab?: (comicId: string, tabId: string) => Awaitable<SourceDetailTabBlock[]>;
+    /** Handles headerStats items with action 'plugin' (comicHeaderVersion >= 2).
+     * May open dialogs; return new header content, {reload: true}, or nothing.
+     */
+    onHeaderAction?: (comicId: string, actionId: string) =>
+      Awaitable<SourceComicHeaderActionResult | void | null>;
+    /** Older hosts only (comicHeaderVersion < 2): host-placed like button. Ignored by newer hosts. */
     likeComic?: (id: string, isLike: boolean) => Awaitable<void>;
     /** Host passes the selected commentOrders code as the fifth argument, also for replies.
      * Without declared orders the host passes ''. Older four-argument plugins remain compatible.
@@ -413,12 +466,40 @@ interface HazukiSourceDefinition {
 }
 /** Native foreground dialogs. All text uses the plugin's normal localization. */
 type SourceDialogImage = SourceLoginImage;
-type SourceDialogValue = string | string[] | boolean | {x: number; y: number}[];
+type SourceDialogValue = string | string[] | boolean | number | {x: number; y: number}[];
+/** 'navigated': the host closed the window to open a comic or search; the operation is not cancelled. */
 type SourceDialogCloseReason = 'user' | 'plugin' | 'ownerGone' | 'superseded' |
-  'sourceChanged' | 'background' | 'timeout' | 'runtimeDisposed' | 'operationFinished';
+  'sourceChanged' | 'background' | 'timeout' | 'runtimeDisposed' | 'operationFinished' | 'navigated';
+/** Built-in icon names; unknown names render no icon. */
+type SourceDialogIcon = 'like' | 'liked' | 'dislike' | 'favorite' | 'favorited' | 'star' |
+  'star_outline' | 'eye' | 'comment' | 'share' | 'download' | 'link' | 'open' | 'copy' | 'search' |
+  'tag' | 'person' | 'group' | 'time' | 'calendar' | 'update' | 'book' | 'pages' | 'image' | 'lock' |
+  'paid' | 'coin' | 'vip' | 'gift' | 'fire' | 'trending' | 'rank' | 'language' | 'info' | 'warning' |
+  'flag' | 'check' | 'close' | 'add' | 'remove' | 'edit' | 'delete' | 'refresh' | 'settings' | 'more';
+type SourceDialogValueAction = 'search' | 'copy' | 'none';
+/** Components allowed inside a row; `flex` 0 keeps intrinsic width. */
+type SourceDialogRowChild = {id: string; flex?: number} & (
+  | {type: 'text'; text: SourceText; tone?: 'normal' | 'error' | 'secondary'}
+  | Extract<SourceDialogComponent, {type: 'richText' | 'image' | 'button' | 'rating' | 'tags' | 'progress'}>
+);
 type SourceDialogComponent = {id: string} & (
   | {type: 'text'; text: SourceText; tone?: 'normal' | 'error' | 'secondary'}
-  | {type: 'image'; image: SourceDialogImage; description?: SourceText}
+  | {type: 'image'; image: SourceDialogImage; description?: SourceText;
+      /** 16–400, default 200. */ height?: number; shape?: 'rect' | 'circle'}
+  /** Interactive unless readOnly; returns a number (0 = unrated). readOnly accepts any decimal. */
+  | {type: 'rating'; label?: SourceText; initialValue?: number; max?: number; allowHalf?: boolean;
+      readOnly?: boolean; required?: boolean; notifyChange?: boolean}
+  | {type: 'row'; children: SourceDialogRowChild[]; align?: 'start' | 'center' | 'end' | 'spaceBetween'}
+  /** Emits {type: 'action', id} like bottom buttons; id must not repeat a bottom button id. */
+  | {type: 'button'; text: SourceText; icon?: SourceDialogIcon;
+      style?: 'tonal' | 'filled' | 'outlined' | 'text' | 'icon'; enabled?: boolean; validate?: boolean}
+  /** Tapping opens the comic's detail in this source and closes the window with reason 'navigated'. */
+  | {type: 'comics'; title?: SourceText; layout?: 'row' | 'grid';
+      items: {id: string; title: string; subtitle?: string; cover?: string}[]}
+  | {type: 'tags'; label?: SourceText; values: string[]; action?: SourceDialogValueAction}
+  | {type: 'info'; rows: {label: SourceText; values: string[]; action?: SourceDialogValueAction}[]}
+  | {type: 'richText'; spans: {text: SourceText; bold?: boolean; italic?: boolean;
+      tone?: 'normal' | 'secondary' | 'error' | 'primary'; link?: string}[]}
   | {type: 'input'; label: SourceText; initialValue?: string; placeholder?: SourceText;
       obscure?: boolean; keyboardType?: 'text' | 'number'; required?: boolean; maxLength?: number}
   | {type: 'select'; label: SourceText; options: {value: string; label: SourceText}[];
@@ -433,7 +514,10 @@ interface SourceDialogButton {
   id: string; text: SourceText; role?: 'primary' | 'secondary'; enabled?: boolean; validate?: boolean;
 }
 interface SourceDialogOptions {
+  /** 0–4 bottom buttons; the close button is always available. */
   title: SourceText; content: SourceDialogComponent[]; buttons: SourceDialogButton[];
+  /** Fixed when opened; update cannot switch it. Defaults to 'dialog'. */
+  presentation?: 'dialog' | 'sheet';
 }
 interface SourceDialogPatch {
   title?: SourceText; content?: SourceDialogComponent[]; buttons?: SourceDialogButton[];
@@ -466,6 +550,8 @@ declare const Hazuki: {
    * Requests made while the app is backgrounded wait for foreground display.
    */
   ui: {
+    /** Absent on older hosts; 3 adds rating/row/button/comics/tags/info/richText, sheets and empty buttons. */
+    readonly dialogVersion?: number;
     isAvailable(): Promise<boolean>;
     /** Opens the isolated WebView outside login too. Explicit cookieScopes import
      * cookies and the actual browser UA into this plugin's session on completion.
@@ -485,6 +571,8 @@ declare const Hazuki: {
     PluginDialogCancelledError: new (reason?: SourceDialogCloseReason) => SourcePluginDialogCancelledError;
   };
   readonly apiVersion: 1;
+  /** Absent on older hosts. 2 adds headerBadges, stat icons/actions and comic.onHeaderAction. */
+  readonly comicHeaderVersion?: number;
   /** Current app language; changes without reloading the plugin. */
   readonly locale: 'zh_CN' | 'en_US';
   /** Resolve a language map or look up a string in this plugin's translation. */

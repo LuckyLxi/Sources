@@ -31,7 +31,7 @@ function findTagEnd(html, start) {
 }
 
 function parseHtml(html) {
-  const root = { tag: "#root", attrs: {}, children: [], parent: null, ownText: "" };
+  const root = { tag: "#root", attrs: {}, children: [], parent: null, ownText: "", content: [] };
   const stack = [root];
   let i = 0;
   const current = () => stack[stack.length - 1];
@@ -39,9 +39,13 @@ function parseHtml(html) {
     const lt = html.indexOf("<", i);
     if (lt === -1) {
       current().ownText += html.slice(i);
+      current().content.push(html.slice(i));
       break;
     }
-    if (lt > i) current().ownText += html.slice(i, lt);
+    if (lt > i) {
+      current().ownText += html.slice(i, lt);
+      current().content.push(html.slice(i, lt));
+    }
     if (html.startsWith("<!--", lt)) {
       const end = html.indexOf("-->", lt);
       i = end === -1 ? html.length : end + 3;
@@ -55,6 +59,7 @@ function parseHtml(html) {
     const gt = findTagEnd(html, lt);
     if (gt === -1) {
       current().ownText += html.slice(lt);
+      current().content.push(html.slice(lt));
       break;
     }
     const raw = html.slice(lt + 1, gt);
@@ -83,8 +88,9 @@ function parseHtml(html) {
       attrs[am[1].toLowerCase()] =
         am[2] !== undefined ? am[2] : am[3] !== undefined ? am[3] : am[4] !== undefined ? am[4] : "";
     }
-    const node = { tag, attrs, children: [], parent: current(), ownText: "" };
+    const node = { tag, attrs, children: [], parent: current(), ownText: "", content: [] };
     current().children.push(node);
+    current().content.push(node);
     if (!selfClosing && !VOID_TAGS.has(tag)) {
       if (tag === "script" || tag === "style") {
         const close = new RegExp("</" + tag + "\\s*>", "i");
@@ -144,9 +150,7 @@ function descendants(node, out = []) {
 }
 
 function textOf(node) {
-  let out = node.ownText;
-  for (const child of node.children) out += textOf(child);
-  return out;
+  return node.content.map(part => typeof part === "string" ? part : textOf(part)).join("");
 }
 
 function wrap(node) {
@@ -176,10 +180,14 @@ function wrap(node) {
       return node.tag;
     },
     get previousElementSibling() {
-      return null;
+      const siblings = node.parent?.children || [];
+      const previous = siblings[siblings.indexOf(node) - 1];
+      return previous ? wrap(previous) : null;
     },
     get nextElementSibling() {
-      return null;
+      const siblings = node.parent?.children || [];
+      const next = siblings[siblings.indexOf(node) + 1];
+      return next ? wrap(next) : null;
     },
     querySelector(sel) {
       for (const d of descendants(node)) if (matchesSelector(d, sel)) return wrap(d);
